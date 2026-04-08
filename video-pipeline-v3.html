@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIDEO PIPELINE v3 — Scalp Ink × My Agent PRO</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg:   #06080e;
+  --s1:   #0c0f18;
+  --s2:   #111520;
+  --s3:   #161c28;
+  --s4:   #1c2336;
+  --ln:   #1e2738;
+  --ln2:  #27334a;
+  --c1:   #eef2ff;
+  --c2:   #7a90b0;
+  --c3:   #3d5070;
+  --acc:  #00c8ff;
+  --a2:   #7857ff;
+  --grn:  #00d97e;
+  --yel:  #ffb300;
+  --red:  #ff4455;
+  --mon:  'IBM Plex Mono', monospace;
+  --dis:  'Bebas Neue', sans-serif;
+  --san:  'Inter', sans-serif;
+  --r:    8px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+
+body{
+  background:var(--bg);color:var(--c1);
+  font-family:var(--san);font-size:13px;
+  display:flex;flex-direction:column;
+}
+
+/* scanlines */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9000;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,200,255,.006) 3px,rgba(0,200,255,.006) 4px);
+}
+
+/* ── TOPBAR ── */
+.topbar{
+  height:50px;background:var(--s1);border-bottom:1px solid var(--ln);
+  display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;
+  position:relative;
+}
+.topbar::after{
+  content:'';position:absolute;left:0;bottom:0;right:0;height:1px;
+  background:linear-gradient(90deg,var(--acc),var(--a2),var(--yel));opacity:.35;
+}
+.logo{font-family:var(--dis);font-size:20px;letter-spacing:.08em;
+  background:linear-gradient(90deg,var(--acc),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-v{font-family:var(--mon);font-size:11px;color:var(--c3);margin-left:2px;}
+.pills{display:flex;gap:6px;flex:1;}
+.pill{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;
+  font-family:var(--mon);font-size:10px;border:1px solid;white-space:nowrap;}
+.p-sora{color:var(--yel);border-color:rgba(255,179,0,.3);background:rgba(255,179,0,.07);}
+.p-on  {color:var(--grn);border-color:rgba(0,217,126,.3);background:rgba(0,217,126,.06);}
+.p-ai  {color:var(--a2); border-color:rgba(120,87,255,.3);background:rgba(120,87,255,.07);}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 1.8s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+#cd-top{font-family:var(--mon);font-size:11px;color:var(--yel);margin-left:auto;
+  background:rgba(255,179,0,.08);padding:3px 10px;border-radius:4px;border:1px solid rgba(255,179,0,.2);}
+
+/* ── LAYOUT ── */
+.app{flex:1;display:grid;grid-template-columns:192px 1fr 264px;overflow:hidden;min-height:0;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  background:var(--s1);border-right:1px solid var(--ln);
+  overflow-y:auto;padding:12px 0;display:flex;flex-direction:column;
+}
+.ng{margin-bottom:18px;}
+.nl{font-family:var(--mon);font-size:9px;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--c3);padding:0 14px;margin-bottom:4px;}
+.nb{
+  display:flex;align-items:center;gap:8px;padding:8px 14px;
+  color:var(--c2);font-size:12px;cursor:pointer;border:none;background:none;
+  width:100%;text-align:left;transition:all .14s;
+  border-left:2px solid transparent;font-family:var(--san);
+}
+.nb:hover{color:var(--c1);background:rgba(255,255,255,.03);}
+.nb.active{color:var(--acc);border-left-color:var(--acc);background:rgba(0,200,255,.05);}
+.nb .nm{margin-left:auto;font-family:var(--mon);font-size:9px;
+  background:var(--s3);padding:1px 6px;border-radius:8px;color:var(--c3);}
+.nb.done .nm{background:rgba(0,217,126,.15);color:var(--grn);}
+.nb.cur  .nm{background:rgba(0,200,255,.15);color:var(--acc);animation:blink .7s infinite;}
+.sdiv{height:1px;background:var(--ln);margin:6px 14px;}
+
+/* ── MAIN ── */
+.main{overflow-y:auto;overflow-x:hidden;background:var(--bg);display:flex;flex-direction:column;}
+
+/* ── STAGE ── */
+.stage{display:none;}
+.stage.active{display:flex;flex-direction:column;flex:1;}
+.sh{
+  padding:16px 22px 12px;border-bottom:1px solid var(--ln);
+  background:linear-gradient(180deg,var(--s1) 0%,var(--bg) 100%);
+  position:sticky;top:0;z-index:10;
+}
+.sh-bc{font-family:var(--mon);font-size:10px;color:var(--c3);margin-bottom:3px;}
+.sh-ti{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;line-height:1.1;}
+.sh-su{color:var(--c2);font-size:11px;margin-top:3px;}
+.sb{padding:18px 22px;flex:1;}
+
+/* ── CARD ── */
+.card{
+  background:var(--s1);border:1px solid var(--ln);border-radius:var(--r);
+  padding:16px;margin-bottom:14px;position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(500px at 50% -80px,rgba(0,200,255,.03),transparent 70%);
+}
+.cl{
+  font-family:var(--mon);font-size:9px;text-transform:uppercase;letter-spacing:.15em;
+  color:var(--c3);margin-bottom:12px;display:flex;align-items:center;gap:8px;
+}
+.cl::after{content:'';flex:1;height:1px;background:var(--ln);}
+
+/* ── FORM ── */
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.col{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.lbl{font-family:var(--mon);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--c3);}
+
+select,input[type=text],input[type=number]{
+  background:var(--s2);border:1px solid var(--ln2);border-radius:5px;
+  padding:7px 9px;color:var(--c1);font-family:var(--mon);font-size:12px;
+  outline:none;width:100%;transition:border-color .14s;
+}
+select:focus,input:focus{border-color:var(--acc);}
+select option{background:var(--s2);}
+textarea{
+  background:var(--s2);border:1px solid var(--ln2);border-radius:5px;
+  padding:9px;color:var(--c1);font-family:var(--mon);font-size:12px;
+  outline:none;width:100%;resize:vertical;line-height:1.6;transition:border-color .14s;
+}
+textarea:focus{border-color:var(--acc);}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;padding:8px 16px;
+  border-radius:6px;font-family:var(--san);font-size:12px;font-weight:500;
+  cursor:pointer;border:none;transition:all .14s;white-space:nowrap;
+}
+.btn-p{background:var(--acc);color:#000;font-weight:700;}
+.btn-p:hover{background:#00b4e8;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,200,255,.3);}
+.btn-p:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.btn-ai{background:linear-gradient(135deg,rgba(120,87,255,.22),rgba(0,200,255,.12));
+  color:var(--c1);border:1px solid rgba(120,87,255,.4);}
+.btn-ai:hover{border-color:var(--a2);}
+.btn-g{background:transparent;color:var(--c2);border:1px solid var(--ln2);}
+.btn-g:hover{border-color:var(--acc);color:var(--acc);}
+.btn-grn{background:rgba(0,217,126,.1);color:var(--grn);border:1px solid rgba(0,217,126,.3);}
+.btn-grn:hover{background:rgba(0,217,126,.2);}
+.btn-sora{background:rgba(255,179,0,.1);color:var(--yel);border:1px solid rgba(255,179,0,.3);}
+.btn-sora:hover{background:rgba(255,179,0,.2);}
+.brow{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+
+/* ── CODE ── */
+.code{background:#050810;border:1px solid var(--ln);border-radius:6px;overflow:hidden;margin-bottom:10px;}
+.ch{padding:7px 12px;border-bottom:1px solid var(--ln);display:flex;align-items:center;
+  justify-content:space-between;font-family:var(--mon);font-size:10px;color:var(--c3);}
+.cb{padding:12px;font-family:var(--mon);font-size:11px;line-height:1.75;
+  white-space:pre;overflow-x:auto;color:#8ba0c0;max-height:240px;overflow-y:auto;}
+.ck{color:var(--acc)}.cs{color:#86efac}.cc{color:var(--c3);font-style:italic}.cv{color:var(--yel)}.cn{color:#f0abfc}
+
+/* ── AI OUTPUT ── */
+.aio{
+  background:var(--s2);border:1px solid var(--ln2);border-radius:6px;
+  padding:11px;min-height:70px;font-family:var(--mon);font-size:12px;
+  line-height:1.7;color:var(--c1);white-space:pre-wrap;margin-bottom:10px;
+}
+.aio.empty{color:var(--c3);font-style:italic;}
+.aio.loading::after{content:'▋';animation:cur .5s infinite;color:var(--acc);}
+@keyframes cur{0%,50%{opacity:1}51%,100%{opacity:0}}
+
+/* ── BADGES ── */
+.badge{font-family:var(--mon);font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid;}
+.b-sora{color:var(--yel);border-color:rgba(255,179,0,.3);background:rgba(255,179,0,.08);}
+.b-veo {color:var(--acc);border-color:rgba(0,200,255,.3);background:rgba(0,200,255,.06);}
+.b-free{color:var(--grn);border-color:rgba(0,217,126,.3);background:rgba(0,217,126,.06);}
+.b-ai  {color:var(--a2); border-color:rgba(120,87,255,.3);background:rgba(120,87,255,.08);}
+
+/* ── ALERT ── */
+.alert{padding:9px 12px;border-radius:5px;border-left:3px solid;font-size:11px;
+  line-height:1.5;margin-bottom:12px;font-family:var(--mon);}
+.a-info{background:rgba(0,200,255,.05);border-color:var(--acc);color:rgba(0,200,255,.9);}
+.a-warn{background:rgba(255,179,0,.06);border-color:var(--yel);color:var(--yel);}
+.a-ok  {background:rgba(0,217,126,.05);border-color:var(--grn);color:var(--grn);}
+
+/* ── TIMELINE ── */
+.tlw{background:var(--s2);border:1px solid var(--ln);border-radius:6px;overflow:hidden;margin-bottom:12px;}
+.tlh{padding:6px 11px;border-bottom:1px solid var(--ln);display:flex;align-items:center;
+  justify-content:space-between;font-family:var(--mon);font-size:10px;color:var(--c3);}
+.tlt{padding:9px 11px;display:flex;gap:5px;min-height:50px;align-items:center;overflow-x:auto;}
+.tlc{height:36px;padding:0 9px;
+  background:linear-gradient(135deg,rgba(0,200,255,.12),rgba(120,87,255,.12));
+  border:1px solid rgba(0,200,255,.2);border-radius:4px;display:flex;align-items:center;gap:5px;
+  font-family:var(--mon);font-size:10px;white-space:nowrap;cursor:pointer;flex-shrink:0;transition:all .14s;}
+.tlc:hover{border-color:var(--acc);}
+.tle{color:var(--c3);font-family:var(--mon);font-size:11px;width:100%;text-align:center;}
+
+/* ── CLIP GRID ── */
+.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;}
+.cc2{background:var(--s2);border:1.5px solid var(--ln);border-radius:6px;padding:8px;
+  cursor:pointer;transition:all .14s;font-size:11px;}
+.cc2:hover{border-color:var(--acc);}
+.cc2.intl{border-color:var(--grn);color:var(--grn);}
+.cc2 .ci{font-size:18px;margin-bottom:3px;}
+.cc2 .cn2{font-size:10px;font-family:var(--mon);}
+.cc2 .cd{color:var(--c3);font-size:9px;font-family:var(--mon);}
+
+/* ════════════════════════════════════
+   OUTPUT CONTROLLER (integrated)
+   ════════════════════════════════════ */
+
+/* FORMAT GRID */
+.fmt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px;}
+.fc{
+  background:var(--s2);border:1.5px solid var(--ln);border-radius:6px;
+  padding:10px 7px;cursor:pointer;transition:all .16s;text-align:center;position:relative;overflow:hidden;
+}
+.fc:hover{border-color:var(--ln2);}
+.fc.active{border-color:var(--acc);background:rgba(0,200,255,.07);}
+.fc.active::before{content:'✓';position:absolute;top:4px;right:6px;
+  font-size:9px;color:var(--acc);font-family:var(--mon);}
+.fp{margin:0 auto 6px;background:var(--s3);border:1.5px solid var(--ln2);border-radius:3px;
+  display:flex;align-items:center;justify-content:center;font-family:var(--mon);font-size:8px;
+  color:var(--c3);transition:all .2s;}
+.fc.active .fp{border-color:rgba(0,200,255,.35);background:rgba(0,200,255,.05);}
+.fn{font-weight:600;font-size:10px;margin-bottom:2px;line-height:1.2;}
+.fr{font-family:var(--mon);font-size:9px;color:var(--c3);}
+.ft{display:inline-block;margin-top:3px;font-family:var(--mon);font-size:9px;
+  padding:1px 5px;border-radius:7px;border:1px solid;}
+.t-sns{color:#f9a8d4;border-color:rgba(249,168,212,.3);background:rgba(249,168,212,.07);}
+.t-yt {color:#fca5a5;border-color:rgba(252,165,165,.3);background:rgba(252,165,165,.07);}
+.t-lp {color:#93c5fd;border-color:rgba(147,197,253,.3);background:rgba(147,197,253,.07);}
+.t-sq {color:#d8b4fe;border-color:rgba(216,180,254,.3);background:rgba(216,180,254,.07);}
+.t-4k {color:var(--grn);border-color:rgba(0,217,126,.3);background:rgba(0,217,126,.07);}
+
+/* CUSTOM ROW */
+.crow{display:flex;align-items:center;gap:7px;padding:9px 11px;
+  background:var(--s2);border:1px solid var(--ln);border-radius:5px;margin-bottom:12px;}
+.crow label{font-family:var(--mon);font-size:10px;color:var(--c3);min-width:20px;}
+.crow input[type=number]{width:72px;}
+.crow .cx{color:var(--c3);font-family:var(--mon);}
+
+/* DURATION CHIPS */
+.dg{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;}
+.dc{background:var(--s2);border:1.5px solid var(--ln);border-radius:5px;
+  padding:7px 4px;text-align:center;cursor:pointer;transition:all .14s;font-family:var(--mon);}
+.dc:hover{border-color:var(--ln2);}
+.dc.active{border-color:var(--acc);color:var(--acc);background:rgba(0,200,255,.07);}
+.ds{font-size:15px;font-weight:600;line-height:1;}
+.dl{font-size:9px;color:var(--c3);margin-top:1px;}
+.dc.active .dl{color:rgba(0,200,255,.6);}
+
+/* RANGE ROW */
+.rrow{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.rlbl{font-family:var(--mon);font-size:9px;color:var(--c3);text-transform:uppercase;
+  letter-spacing:.08em;min-width:100px;}
+.rtrk{flex:1;position:relative;height:5px;background:var(--ln2);border-radius:3px;}
+.rfil{position:absolute;left:0;top:0;height:100%;border-radius:3px;transition:width .18s;}
+.rinp{-webkit-appearance:none;position:absolute;left:0;top:-5px;width:100%;height:16px;
+  background:transparent;margin:0;cursor:pointer;}
+.rinp::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+  cursor:pointer;box-shadow:0 0 5px currentColor;}
+.rval{font-family:var(--mon);font-size:11px;min-width:54px;text-align:right;color:var(--c1);}
+
+/* FPS / CODEC chips */
+.chiprow{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
+.chip{font-family:var(--mon);font-size:10px;padding:4px 10px;border-radius:4px;
+  border:1.5px solid var(--ln);background:var(--s2);cursor:pointer;transition:all .14s;}
+.chip:hover{border-color:var(--ln2);}
+.chip.active-fps{border-color:var(--a2);color:var(--a2);background:rgba(120,87,255,.09);}
+.chip.active-cdc{border-color:var(--grn);color:var(--grn);background:rgba(0,217,126,.07);}
+
+/* PREVIEW FRAME */
+.pv-wrap{display:flex;justify-content:center;align-items:center;padding:20px;
+  background:var(--s2);border:1px solid var(--ln);border-radius:7px;margin-bottom:12px;min-height:200px;}
+.pv-frame{
+  background:linear-gradient(135deg,#0d1525,#131f35);
+  border:1.5px solid rgba(0,200,255,.25);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;transition:all .4s cubic-bezier(.4,0,.2,1);overflow:hidden;
+}
+.pv-frame .ruler-h{position:absolute;top:0;left:0;right:0;height:7px;
+  background:repeating-linear-gradient(90deg,transparent,transparent 7px,rgba(0,200,255,.07) 7px,rgba(0,200,255,.07) 8px);}
+.pv-frame .ruler-v{position:absolute;top:0;left:0;bottom:0;width:7px;
+  background:repeating-linear-gradient(180deg,transparent,transparent 7px,rgba(0,200,255,.07) 7px,rgba(0,200,255,.07) 8px);}
+.pv-cross{position:absolute;width:18px;height:18px;left:50%;top:50%;transform:translate(-50%,-50%);}
+.pv-cross::before,.pv-cross::after{content:'';position:absolute;background:rgba(0,200,255,.15);}
+.pv-cross::before{left:8px;top:0;width:1px;height:18px;}
+.pv-cross::after{top:8px;left:0;width:18px;height:1px;}
+.pv-sz{font-family:var(--dis);font-size:22px;color:rgba(0,200,255,.55);letter-spacing:.05em;}
+.pv-res{font-family:var(--mon);font-size:9px;color:rgba(255,255,255,.3);margin-top:2px;}
+.pv-lbl{position:absolute;bottom:5px;font-family:var(--mon);font-size:8px;
+  color:rgba(0,200,255,.4);letter-spacing:.1em;text-align:center;width:100%;}
+.safe-z{position:absolute;border:1px dashed rgba(0,200,255,.18);border-radius:2px;pointer-events:none;}
+
+/* SPEC GRID */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.si{background:var(--s2);border:1px solid var(--ln);border-radius:5px;padding:9px 11px;}
+.sk{font-family:var(--mon);font-size:9px;color:var(--c3);text-transform:uppercase;
+  letter-spacing:.1em;margin-bottom:2px;}
+.sv{font-family:var(--mon);font-size:12px;font-weight:500;color:var(--c1);}
+.sv.ac{color:var(--acc)}.sv.gn{color:var(--grn)}.sv.yl{color:var(--yel)}
+
+/* OUTPUT TABS */
+.otabs{display:flex;gap:3px;border-bottom:1px solid var(--ln);margin-bottom:12px;}
+.otab{padding:6px 12px;font-family:var(--mon);font-size:10px;cursor:pointer;
+  border-bottom:2px solid transparent;color:var(--c3);margin-bottom:-1px;transition:all .14s;
+  text-transform:uppercase;letter-spacing:.06em;}
+.otab:hover{color:var(--c1);}
+.otab.active{color:var(--acc);border-bottom-color:var(--acc);}
+.otcnt{display:none;}
+.otcnt.active{display:block;}
+
+/* BATCH GRID */
+.bg2{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px;}
+.bi{background:var(--s2);border:1.5px solid var(--ln);border-radius:5px;padding:9px;
+  cursor:pointer;transition:all .14s;}
+.bi:hover{border-color:var(--ln2);}
+.bi.sel{border-color:var(--a2);background:rgba(120,87,255,.07);}
+.bi .bn{font-size:11px;font-weight:600;margin-bottom:2px;}
+.bi .br2{font-family:var(--mon);font-size:9px;color:var(--c3);}
+.bi .bc{display:none;color:var(--a2);font-size:9px;font-family:var(--mon);margin-top:2px;}
+.bi.sel .bc{display:block;}
+
+/* ── RIGHT PANEL ── */
+.rpanel{background:var(--s1);border-left:1px solid var(--ln);overflow-y:auto;padding:14px;
+  display:flex;flex-direction:column;gap:14px;}
+.rpl{font-family:var(--mon);font-size:9px;text-transform:uppercase;letter-spacing:.13em;
+  color:var(--c3);margin-bottom:7px;}
+.trow{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;
+  border-radius:4px;background:var(--s2);border:1px solid var(--ln);margin-bottom:4px;font-size:11px;}
+.td{width:6px;height:6px;border-radius:50%;}
+.ton{background:var(--grn);box-shadow:0 0 4px var(--grn);}
+.twn{background:var(--yel);box-shadow:0 0 4px var(--yel);animation:blink 1.2s infinite;}
+.tv{font-family:var(--mon);font-size:10px;color:var(--c3);}
+.qab{display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:5px;
+  background:var(--s2);border:1px solid var(--ln);cursor:pointer;font-size:11px;
+  color:var(--c2);transition:all .14s;margin-bottom:4px;width:100%;}
+.qab:hover{border-color:var(--acc);color:var(--acc);}
+.stat-g{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px;}
+.stat{background:var(--s2);border:1px solid var(--ln);border-radius:5px;padding:8px 9px;text-align:center;}
+.sv2{font-family:var(--mon);font-size:20px;font-weight:600;color:var(--acc);line-height:1.1;}
+.sk2{font-family:var(--mon);font-size:9px;color:var(--c3);text-transform:uppercase;margin-top:1px;}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--ln2);border-radius:2px;}
+@keyframes flashC{0%{background:rgba(0,200,255,.18)}100%{background:transparent}}
+.cf{animation:flashC .4s;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">VIDEO PIPELINE <span class="logo-v">v3</span></div>
+  <div class="pills">
+    <div class="pill p-sora"><div class="dot"></div>Sora ～4/26</div>
+    <div class="pill p-on"><div class="dot"></div>Veo 3.1</div>
+    <div class="pill p-on"><div class="dot"></div>Kling</div>
+    <div class="pill p-ai"><div class="dot"></div>Claude API</div>
+  </div>
+  <div id="cd-top">⏳ 計算中…</div>
+</div>
+
+<div class="app">
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar">
+  <div class="ng">
+    <div class="nl">パイプライン</div>
+    <button class="nb done" onclick="gs('s1')"><span>📝</span>台本・設定<span class="nm">✓</span></button>
+    <button class="nb cur active" onclick="gs('s2')"><span>✨</span>プロンプト生成<span class="nm" id="nb2">•</span></button>
+    <button class="nb" onclick="gs('s3')"><span>🎬</span>動画生成<span class="nm" id="nb3">3</span></button>
+    <button class="nb" onclick="gs('s4')"><span>🎵</span>音声合成<span class="nm" id="nb4">4</span></button>
+    <button class="nb" onclick="gs('s5')"><span>✂️</span>編集・出力<span class="nm" id="nb5">5</span></button>
+    <button class="nb" onclick="gs('s6')"><span>📤</span>書き出し<span class="nm" id="nb6">6</span></button>
+  </div>
+  <div class="sdiv"></div>
+  <div class="ng">
+    <div class="nl">ブランド</div>
+    <button class="nb" onclick="setBrand('scalp');gs('s1')">💈 スカルプインク</button>
+    <button class="nb" onclick="setBrand('agent');gs('s1')">🏠 My Agent PRO</button>
+  </div>
+  <div class="sdiv"></div>
+  <div class="ng">
+    <div class="nl">ツール</div>
+    <button class="nb" onclick="gs('setup')">🔧 セットアップ</button>
+    <button class="nb" onclick="gs('scripts')">⚙️ PSスクリプト</button>
+  </div>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+
+<!-- ══ S1: 設定 ══ -->
+<div class="stage active" id="stage-s1">
+  <div class="sh">
+    <div class="sh-bc">STEP 1 / 6 › 台本・設定</div>
+    <div class="sh-ti">📝 動画の基本設定</div>
+    <div class="sh-su">ブランド・用途・テーマを選ぶだけで次ステップが自動準備されます</div>
+  </div>
+  <div class="sb">
+    <div class="card">
+      <div class="r3">
+        <div class="col"><label class="lbl">ブランド</label>
+          <select id="cfg-brand" onchange="onCfg()">
+            <option value="scalp">💈 スカルプインク（SMP）</option>
+            <option value="agent">🏠 My Agent PRO（不動産）</option>
+          </select></div>
+        <div class="col"><label class="lbl">動画用途</label>
+          <select id="cfg-purpose" onchange="onCfg()">
+            <option value="reel">Instagram Reel（9:16）</option>
+            <option value="lp">LP ヒーロー動画（16:9）</option>
+            <option value="youtube">YouTube（16:9）</option>
+            <option value="story">Story / TikTok（9:16）</option>
+          </select></div>
+        <div class="col"><label class="lbl">シーンタイプ</label>
+          <select id="cfg-scene" onchange="onCfg()">
+            <option value="before-after">ビフォーアフター変身</option>
+            <option value="process">施術プロセス（CU）</option>
+            <option value="lifestyle">ライフスタイル・自信回復</option>
+            <option value="property-walk">物件ウォークスルー</option>
+            <option value="cinematic">シネマティック演出</option>
+          </select></div>
+      </div>
+      <div class="r2">
+        <div class="col"><label class="lbl">トーン</label>
+          <select id="cfg-tone" onchange="onCfg()">
+            <option value="trust">信頼・専門性</option>
+            <option value="emotional">感動・共感</option>
+            <option value="luxury">高級・洗練</option>
+            <option value="energetic">活力・変身</option>
+          </select></div>
+        <div class="col"><label class="lbl">追加キーワード</label>
+          <input type="text" id="cfg-kw" placeholder="例：薄毛 30代男性 自信回復" oninput="onCfg()"></div>
+      </div>
+      <div id="cfg-preview" class="alert a-info">設定を変更してください</div>
+    </div>
+    <div class="brow">
+      <button class="btn btn-p" onclick="gs('s2');markDone('nb2','•')">次へ：プロンプト生成 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S2: プロンプト生成 ══ -->
+<div class="stage" id="stage-s2">
+  <div class="sh">
+    <div class="sh-bc">STEP 2 / 6 › プロンプト生成</div>
+    <div class="sh-ti">✨ AIプロンプト自動生成 <span class="badge b-ai">Claude API</span></div>
+    <div class="sh-su">Claude APIが台本・動画プロンプト・ナレーション・オーバーレイを一括生成します</div>
+  </div>
+  <div class="sb">
+    <div class="card">
+      <div class="alert a-info" style="margin-bottom:10px;">「一括生成」で4種類のコンテンツを同時生成。API失敗時はプリセットに自動フォールバック。</div>
+      <div class="brow" style="margin-top:0;margin-bottom:12px;">
+        <button class="btn btn-ai" id="btn-gen" onclick="genAll()">
+          <span id="gen-ic">✨</span> <span id="gen-lb">一括生成（Claude API）</span>
+        </button>
+        <button class="btn btn-g" onclick="loadPreset()">📂 プリセットから読み込み</button>
+      </div>
+      <div class="col">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <label class="lbl" style="margin:0;">動画プロンプト（Sora/Veo/Kling用・英語）</label>
+          <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-vp')">📋 コピー</button>
+        </div>
+        <div id="out-vp" class="aio empty">← まず「一括生成」を押してください</div>
+      </div>
+      <div class="r2">
+        <div class="col">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <label class="lbl" style="margin:0;">ナレーション原稿（日本語）</label>
+            <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-nr')">📋</button>
+          </div>
+          <div id="out-nr" class="aio empty" style="min-height:90px;">—</div>
+        </div>
+        <div class="col">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <label class="lbl" style="margin:0;">テキストオーバーレイ</label>
+            <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-ov')">📋</button>
+          </div>
+          <div id="out-ov" class="aio empty" style="min-height:90px;">—</div>
+        </div>
+      </div>
+      <div class="col">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <label class="lbl" style="margin:0;">BGM・シーン構成メモ</label>
+          <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-mt')">📋</button>
+        </div>
+        <div id="out-mt" class="aio empty" style="min-height:50px;">—</div>
+      </div>
+    </div>
+    <div class="brow">
+      <button class="btn btn-p" id="btn-s3" onclick="gs('s3');markDone('nb2')" disabled>次へ：動画生成 →</button>
+      <button class="btn btn-g" onclick="gs('s1')">← 戻る</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S3: 動画生成 ══ -->
+<div class="stage" id="stage-s3">
+  <div class="sh">
+    <div class="sh-bc">STEP 3 / 6 › 動画生成</div>
+    <div class="sh-ti">🎬 AIで動画クリップを生成</div>
+    <div class="sh-su">プロンプトをコピーして各ツールで生成 → タイムラインに追加</div>
+  </div>
+  <div class="sb">
+    <div class="alert a-warn">⏳ Soraは残り <strong id="s3-days">—</strong> 日。最優先で素材を生成してください。</div>
+    <div class="card">
+      <div class="cl">生成プロンプト（コピーして各ツールで使用）</div>
+      <div class="code">
+        <div class="ch"><span>Video Prompt</span>
+          <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('s3-pb')">📋 コピー</button></div>
+        <div class="cb" id="s3-pb"><span class="cc">← Step 2でプロンプトを生成してください</span></div>
+      </div>
+      <div class="brow" style="margin-top:0;">
+        <button class="btn btn-sora" onclick="cpOpen('s3-pb','https://sora.com')">🔥 Soraで開く</button>
+        <button class="btn btn-g" onclick="cpOpen('s3-pb','https://vids.google.com')">☁️ Google Vids</button>
+        <button class="btn btn-g" onclick="cpOpen('s3-pb','https://klingai.com')">🎬 Kling AI</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cl">タイムライン <span id="tl-badge" class="badge b-free" style="display:none">0クリップ</span></div>
+      <div class="tlw">
+        <div class="tlh"><span>VIDEO TRACK</span><span id="tl-tot">合計: 0秒</span></div>
+        <div class="tlt" id="tl-tr"><div class="tle">クリップを追加してください</div></div>
+      </div>
+      <div class="cg">
+        <div class="cc2" onclick="addClip('SMP_before_after.mp4','10s')"><div class="ci">💈</div><div class="cn2">SMP ビフォーアフター</div><div class="cd">10s / 9:16</div></div>
+        <div class="cc2" onclick="addClip('SMP_closeup.mp4','8s')"><div class="ci">🔬</div><div class="cn2">施術クローズアップ</div><div class="cd">8s / 9:16</div></div>
+        <div class="cc2" onclick="addClip('SMP_lifestyle.mp4','8s')"><div class="ci">✨</div><div class="cn2">ライフスタイル</div><div class="cd">8s / 9:16</div></div>
+        <div class="cc2" onclick="addClip('Property_exterior.mp4','15s')"><div class="ci">🏠</div><div class="cn2">物件 外観</div><div class="cd">15s / 16:9</div></div>
+        <div class="cc2" onclick="addClip('Property_interior.mp4','12s')"><div class="ci">🛋️</div><div class="cn2">物件 室内</div><div class="cd">12s / 16:9</div></div>
+        <div class="cc2" onclick="addClip('Custom_clip.mp4','10s')"><div class="ci">＋</div><div class="cn2">カスタム追加</div><div class="cd">手動指定</div></div>
+      </div>
+    </div>
+    <div class="brow">
+      <button class="btn btn-p" id="btn-s4" onclick="gs('s4');markDone('nb3')" disabled>次へ：音声合成 →</button>
+      <button class="btn btn-g" onclick="gs('s2')">← 戻る</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S4: 音声 ══ -->
+<div class="stage" id="stage-s4">
+  <div class="sh">
+    <div class="sh-bc">STEP 4 / 6 › 音声合成</div>
+    <div class="sh-ti">🎵 ナレーション・BGM設定</div>
+    <div class="sh-su">VOICEVOXで日本語ナレーション生成 → BGM選択 → 音量バランス設定</div>
+  </div>
+  <div class="sb">
+    <div class="r2">
+      <div class="card" style="margin-bottom:0;">
+        <div class="cl">ナレーション（VOICEVOX）</div>
+        <div class="col"><label class="lbl">原稿</label>
+          <textarea id="s4-nar" rows="5" placeholder="Step 2で生成した原稿をここに貼り付け…"></textarea></div>
+        <div class="r2">
+          <div class="col"><label class="lbl">話者</label>
+            <select><option>VOICEVOX Nemo（ビジネス）</option><option>四国めたん</option><option>ずんだもん</option></select></div>
+          <div class="col"><label class="lbl">スタイル</label>
+            <select><option>ノーマル</option><option>優しい</option><option>丁寧</option></select></div>
+        </div>
+        <div class="rrow">
+          <span class="rlbl">速度</span>
+          <input type="range" style="-webkit-appearance:none;flex:1;height:4px;background:var(--ln2);border-radius:2px;" min="0.5" max="1.5" step="0.05" value="1.0" oninput="this.nextElementSibling.textContent=parseFloat(this.value).toFixed(2)+'x'">
+          <span class="rval">1.00x</span>
+        </div>
+        <div class="brow" style="margin-top:4px;">
+          <button class="btn btn-p" onclick="openVV()">🔊 VOICEVOXで生成</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="cl">BGM設定</div>
+        <div class="col"><label class="lbl">ジャンル</label>
+          <select id="s4-bgm">
+            <option>Ambient（落ち着き・信頼感）</option>
+            <option>Upbeat Electronic（変身・活力）</option>
+            <option>Cinematic Orchestral（高級感）</option>
+            <option>Lo-fi Hip Hop（親近感）</option>
+          </select></div>
+        <div class="rrow">
+          <span class="rlbl">BGM音量</span>
+          <input type="range" style="-webkit-appearance:none;flex:1;height:4px;background:var(--ln2);border-radius:2px;" min="0" max="1" step="0.05" value="0.2" id="bgm-vol" oninput="this.nextElementSibling.textContent=Math.round(this.value*100)+'%'">
+          <span class="rval">20%</span>
+        </div>
+        <div class="rrow">
+          <span class="rlbl">ナレーション音量</span>
+          <input type="range" style="-webkit-appearance:none;flex:1;height:4px;background:var(--ln2);border-radius:2px;" min="0" max="1" step="0.05" value="0.9" oninput="this.nextElementSibling.textContent=Math.round(this.value*100)+'%'">
+          <span class="rval">90%</span>
+        </div>
+        <div class="brow" style="margin-top:4px;">
+          <button class="btn btn-g" onclick="window.open('https://www.youtube.com/audiolibrary','_blank')">🎵 YouTubeライブラリ</button>
+          <button class="btn btn-g" onclick="window.open('https://pixabay.com/music/','_blank')">🎶 Pixabay</button>
+        </div>
+      </div>
+    </div>
+    <div class="brow" style="margin-top:14px;">
+      <button class="btn btn-p" onclick="gs('s5');markDone('nb4')">次へ：編集・出力 →</button>
+      <button class="btn btn-g" onclick="gs('s3')">← 戻る</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S5: 編集・出力（OUTPUT CONTROLLER 統合）══ -->
+<div class="stage" id="stage-s5">
+  <div class="sh">
+    <div class="sh-bc">STEP 5 / 6 › 編集・出力設定</div>
+    <div class="sh-ti">✂️ フォーマット × 秒数 × 画質 設定</div>
+    <div class="sh-su">出力サイズ・尺・品質を選ぶとFFmpegコマンドが自動生成されます</div>
+  </div>
+  <div class="sb">
+
+    <!-- TWO-COLUMN LAYOUT -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+
+      <!-- LEFT: FORMAT + DURATION + QUALITY -->
+      <div>
+
+        <!-- FORMAT -->
+        <div class="card" style="margin-bottom:10px;">
+          <div class="cl">① 出力フォーマット</div>
+          <div class="fmt-grid" id="fmt-grid">
+            <div class="fc active" data-id="reel" onclick="selFmt(this)" data-w="1080" data-h="1920" data-lbl="Reel">
+              <div class="fp" style="width:24px;height:44px;"></div>
+              <div class="fn">Instagram<br>Reel</div><div class="fr">1080×1920</div>
+              <span class="ft t-sns">SNS縦</span></div>
+            <div class="fc" data-id="tiktok" onclick="selFmt(this)" data-w="1080" data-h="1920" data-lbl="TikTok">
+              <div class="fp" style="width:24px;height:44px;"></div>
+              <div class="fn">TikTok /<br>Story</div><div class="fr">1080×1920</div>
+              <span class="ft t-sns">SNS縦</span></div>
+            <div class="fc" data-id="shorts" onclick="selFmt(this)" data-w="1080" data-h="1920" data-lbl="Shorts">
+              <div class="fp" style="width:24px;height:44px;"></div>
+              <div class="fn">YouTube<br>Shorts</div><div class="fr">1080×1920</div>
+              <span class="ft t-yt">YouTube</span></div>
+            <div class="fc" data-id="yt1080" onclick="selFmt(this)" data-w="1920" data-h="1080" data-lbl="YouTube FHD">
+              <div class="fp" style="width:52px;height:29px;"></div>
+              <div class="fn">YouTube<br>Full HD</div><div class="fr">1920×1080</div>
+              <span class="ft t-yt">YouTube</span></div>
+            <div class="fc" data-id="yt4k" onclick="selFmt(this)" data-w="3840" data-h="2160" data-lbl="YouTube 4K">
+              <div class="fp" style="width:52px;height:29px;"></div>
+              <div class="fn">YouTube<br>4K UHD</div><div class="fr">3840×2160</div>
+              <span class="ft t-4k">4K</span></div>
+            <div class="fc" data-id="lp" onclick="selFmt(this)" data-w="1920" data-h="1080" data-lbl="LP Hero">
+              <div class="fp" style="width:52px;height:29px;"></div>
+              <div class="fn">LP ヒーロー<br>動画</div><div class="fr">1920×1080</div>
+              <span class="ft t-lp">LP/Web</span></div>
+            <div class="fc" data-id="sq" onclick="selFmt(this)" data-w="1080" data-h="1080" data-lbl="Square 1:1">
+              <div class="fp" style="width:36px;height:36px;"></div>
+              <div class="fn">スクエア<br>1:1</div><div class="fr">1080×1080</div>
+              <span class="ft t-sq">正方形</span></div>
+            <div class="fc" data-id="fb" onclick="selFmt(this)" data-w="1280" data-h="720" data-lbl="Facebook">
+              <div class="fp" style="width:48px;height:27px;"></div>
+              <div class="fn">Facebook /<br>LINE VOOM</div><div class="fr">1280×720</div>
+              <span class="ft t-sns">SNS横</span></div>
+            <div class="fc" data-id="reel4k" onclick="selFmt(this)" data-w="2160" data-h="3840" data-lbl="4K縦">
+              <div class="fp" style="width:20px;height:36px;"></div>
+              <div class="fn">4K縦<br>Ultra</div><div class="fr">2160×3840</div>
+              <span class="ft t-4k">4K縦</span></div>
+          </div>
+          <!-- custom -->
+          <div class="cl" style="margin-bottom:7px;">カスタムサイズ</div>
+          <div class="crow">
+            <label>W</label>
+            <input type="number" id="cw" value="1080" min="100" max="7680" step="2" oninput="applyCustom()">
+            <span class="cx">×</span>
+            <label>H</label>
+            <input type="number" id="ch" value="1920" min="100" max="7680" step="2" oninput="applyCustom()">
+            <span class="cx">px</span>
+            <button class="btn btn-g" style="padding:4px 9px;font-size:10px;" onclick="applyCustom(true)">適用</button>
+          </div>
+        </div>
+
+        <!-- DURATION -->
+        <div class="card" style="margin-bottom:10px;">
+          <div class="cl">② 秒数設定</div>
+          <div class="dg" id="dur-grid">
+            <div class="dc" data-sec="5" onclick="selDur(this)"><div class="ds">5</div><div class="dl">秒</div></div>
+            <div class="dc active" data-sec="10" onclick="selDur(this)"><div class="ds">10</div><div class="dl">秒</div></div>
+            <div class="dc" data-sec="15" onclick="selDur(this)"><div class="ds">15</div><div class="dl">秒</div></div>
+            <div class="dc" data-sec="30" onclick="selDur(this)"><div class="ds">30</div><div class="dl">秒</div></div>
+            <div class="dc" data-sec="60" onclick="selDur(this)"><div class="ds">60</div><div class="dl">秒</div></div>
+            <div class="dc" data-sec="90" onclick="selDur(this)"><div class="ds">90</div><div class="dl">秒</div></div>
+            <div class="dc" data-sec="120" onclick="selDur(this)"><div class="ds">120</div><div class="dl">秒</div></div>
+            <div class="dc" data-sec="0" onclick="selDur(this)"><div class="ds">∞</div><div class="dl">任意</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-family:var(--mon);font-size:9px;color:var(--c3);min-width:50px;">スライダー</span>
+            <input type="range" id="dur-sl" min="1" max="300" value="10"
+              style="-webkit-appearance:none;flex:1;height:4px;background:var(--ln2);border-radius:2px;"
+              oninput="syncDurSl(this.value)">
+            <div id="dur-disp" style="font-family:var(--mon);font-size:16px;font-weight:600;color:var(--acc);min-width:44px;text-align:right;">10s</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">直接入力：</span>
+            <input type="number" id="dur-in" value="10" min="1" max="3600" style="width:72px;" oninput="syncDurIn(this.value)">
+            <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">sec</span>
+            <span id="dur-hms" style="font-family:var(--mon);font-size:9px;color:var(--c3);"></span>
+          </div>
+        </div>
+
+        <!-- QUALITY -->
+        <div class="card">
+          <div class="cl">③ 画質・品質設定</div>
+          <div class="rrow">
+            <span class="rlbl">CRF（品質）</span>
+            <div class="rtrk">
+              <div class="rfil" id="crf-fil" style="background:linear-gradient(90deg,var(--grn),var(--acc));width:57%;"></div>
+              <input type="range" class="rinp" id="crf-sl" min="12" max="35" value="20"
+                style="color:var(--acc);" oninput="updCRF(this.value)">
+            </div>
+            <span class="rval" id="crf-val">CRF 20</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-family:var(--mon);font-size:8px;color:var(--c3);margin:-4px 0 8px 100px;">
+            <span>← 高品質</span><span>低画質 →</span>
+          </div>
+          <div class="rrow">
+            <span class="rlbl">最大ビットレート</span>
+            <div class="rtrk">
+              <div class="rfil" id="br-fil" style="background:linear-gradient(90deg,var(--a2),var(--acc));width:16%;"></div>
+              <input type="range" class="rinp" id="br-sl" min="1000" max="50000" step="500" value="8000"
+                style="color:var(--a2);" oninput="updBR(this.value)">
+            </div>
+            <span class="rval" id="br-val">8 Mbps</span>
+          </div>
+          <div class="rrow">
+            <span class="rlbl">音声ビットレート</span>
+            <div class="rtrk">
+              <div class="rfil" id="abr-fil" style="background:linear-gradient(90deg,var(--yel),var(--grn));width:49%;"></div>
+              <input type="range" class="rinp" id="abr-sl" min="64" max="320" step="32" value="192"
+                style="color:var(--yel);" oninput="updABR(this.value)">
+            </div>
+            <span class="rval" id="abr-val">192 kbps</span>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div class="lbl" style="margin-bottom:5px;">FPS</div>
+            <div class="chiprow" id="fps-row">
+              <div class="chip" data-fps="24" onclick="selFPS(this)">24fps</div>
+              <div class="chip active-fps" data-fps="30" onclick="selFPS(this)">30fps</div>
+              <div class="chip" data-fps="60" onclick="selFPS(this)">60fps</div>
+              <div class="chip" data-fps="120" onclick="selFPS(this)">120fps</div>
+            </div>
+          </div>
+          <div>
+            <div class="lbl" style="margin-bottom:5px;">コーデック</div>
+            <div class="chiprow" id="cdc-row">
+              <div class="chip active-cdc" data-cdc="libx264" onclick="selCDC(this)">H.264（汎用）</div>
+              <div class="chip" data-cdc="libx265" onclick="selCDC(this)">H.265（高効率）</div>
+              <div class="chip" data-cdc="libvpx-vp9" onclick="selCDC(this)">VP9（Web）</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /LEFT -->
+
+      <!-- RIGHT: PREVIEW + SPECS -->
+      <div>
+        <div class="card">
+          <div class="cl">プレビュー</div>
+          <div class="pv-wrap">
+            <div class="pv-frame" id="pv-fr">
+              <div class="ruler-h"></div><div class="ruler-v"></div>
+              <div class="pv-cross"></div>
+              <div class="safe-z" id="pv-safe"></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div class="pv-sz" id="pv-ratio">9:16</div>
+                <div class="pv-res" id="pv-res">1080 × 1920 px</div>
+              </div>
+              <div class="pv-lbl" id="pv-lbl">INSTAGRAM REEL</div>
+            </div>
+          </div>
+          <div class="sg">
+            <div class="si"><div class="sk">解像度</div><div class="sv ac" id="sp-res">1080×1920</div></div>
+            <div class="si"><div class="sk">比率</div><div class="sv ac" id="sp-ratio">9:16</div></div>
+            <div class="si"><div class="sk">尺 / FPS</div><div class="sv gn" id="sp-dur">10秒 / 30fps</div></div>
+            <div class="si"><div class="sk">コーデック</div><div class="sv" id="sp-cdc">H.264</div></div>
+            <div class="si"><div class="sk">品質（CRF）</div><div class="sv yl" id="sp-crf">CRF 20 高品質</div></div>
+            <div class="si"><div class="sk">推定ファイルサイズ</div><div class="sv yl" id="sp-sz">〜 24 MB</div></div>
+            <div class="si"><div class="sk">総ビットレート</div><div class="sv" id="sp-br">8.2 Mbps</div></div>
+            <div class="si"><div class="sk">用途判定</div><div class="sv" id="sp-use">Instagram Reel</div></div>
+          </div>
+        </div>
+      </div><!-- /RIGHT -->
+
+    </div><!-- /TWO-COLUMN -->
+
+    <!-- OUTPUT COMMAND PANEL -->
+    <div class="card">
+      <div class="cl">④ FFmpegコマンド生成 <span class="badge b-ai">自動更新</span></div>
+      <div class="otabs">
+        <div class="otab active" onclick="switchOT(this,'ot-single')">単体出力</div>
+        <div class="otab" onclick="switchOT(this,'ot-batch')">バッチ出力（複数同時）</div>
+        <div class="otab" onclick="switchOT(this,'ot-sora')">Sora/Veo ガイド</div>
+        <div class="otab" onclick="switchOT(this,'ot-cc')">Claude Code 指示文</div>
+      </div>
+
+      <!-- SINGLE -->
+      <div class="otcnt active" id="ot-single">
+        <div class="alert a-info">設定変更と同時にコマンドが更新されます。コピーしてPowerShellで実行。</div>
+        <div class="code">
+          <div class="ch"><span id="cmd-ti">FFmpeg — Instagram Reel 1080×1920</span>
+            <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpEl('cmd-bd')">📋 コピー</button></div>
+          <div class="cb" id="cmd-bd">…生成中</div>
+        </div>
+        <div class="brow">
+          <button class="btn btn-p" onclick="cpEl('cmd-bd')">📋 コマンドをコピー</button>
+          <button class="btn btn-grn" onclick="showCC()">⚡ Claude Code 指示文を生成</button>
+        </div>
+      </div>
+
+      <!-- BATCH -->
+      <div class="otcnt" id="ot-batch">
+        <div class="alert a-info">同じ動画を複数フォーマットで一括書き出し。チェックを選んでコマンド生成。</div>
+        <div class="bg2">
+          <div class="bi sel" data-w="1080" data-h="1920" data-lbl="Reel" onclick="togBatch(this)">
+            <div class="bn">📱 Instagram Reel</div><div class="br2">1080×1920 / 9:16</div><div class="bc">✓ 選択中</div></div>
+          <div class="bi" data-w="1080" data-h="1920" data-lbl="TikTok" onclick="togBatch(this)">
+            <div class="bn">🎵 TikTok</div><div class="br2">1080×1920 / 9:16</div><div class="bc">✓ 選択中</div></div>
+          <div class="bi" data-w="1080" data-h="1920" data-lbl="Shorts" onclick="togBatch(this)">
+            <div class="bn">▶ YouTube Shorts</div><div class="br2">1080×1920 / 9:16</div><div class="bc">✓ 選択中</div></div>
+          <div class="bi" data-w="1920" data-h="1080" data-lbl="YouTube" onclick="togBatch(this)">
+            <div class="bn">▶ YouTube FHD</div><div class="br2">1920×1080 / 16:9</div><div class="bc">✓ 選択中</div></div>
+          <div class="bi" data-w="1080" data-h="1080" data-lbl="Square" onclick="togBatch(this)">
+            <div class="bn">⬜ スクエア 1:1</div><div class="br2">1080×1080</div><div class="bc">✓ 選択中</div></div>
+          <div class="bi" data-w="1920" data-h="1080" data-lbl="LP" onclick="togBatch(this)">
+            <div class="bn">🌐 LP ヒーロー</div><div class="br2">1920×1080 / 16:9</div><div class="bc">✓ 選択中</div></div>
+        </div>
+        <button class="btn btn-p" style="margin-bottom:10px;" onclick="buildBatch()">⚙️ バッチコマンドを生成</button>
+        <div class="code">
+          <div class="ch"><span id="bt-ti">バッチ書き出しコマンド</span>
+            <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpEl('bt-bd')">📋 コピー</button></div>
+          <div class="cb" id="bt-bd"><span class="cc"># バッチコマンドを生成ボタンを押してください</span></div>
+        </div>
+      </div>
+
+      <!-- SORA GUIDE -->
+      <div class="otcnt" id="ot-sora">
+        <div class="alert a-warn">⚠️ Soraで指定できるのは比率のみ。解像度・秒数は現在の設定を参考に手動設定してください。</div>
+        <div class="code">
+          <div class="ch"><span>Sora / Google Vids / Kling AI — サイズ設定ガイド</span>
+            <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpEl('sg-bd')">📋 コピー</button></div>
+          <div class="cb" id="sg-bd">…生成中</div>
+        </div>
+      </div>
+
+      <!-- CLAUDE CODE -->
+      <div class="otcnt" id="ot-cc">
+        <div class="alert a-info">Claude Code（ターミナル）に貼り付けるだけで実行できる自然言語指示文です。</div>
+        <div class="code">
+          <div class="ch"><span>Claude Code 自然言語指示文</span>
+            <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpEl('cc-bd')">📋 コピー</button></div>
+          <div class="cb" id="cc-bd">…生成中</div>
+        </div>
+      </div>
+    </div><!-- /cmd panel -->
+
+    <div class="brow">
+      <button class="btn btn-p" onclick="gs('s6');markDone('nb5')">次へ：書き出し →</button>
+      <button class="btn btn-g" onclick="gs('s4')">← 戻る</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S6: 書き出し ══ -->
+<div class="stage" id="stage-s6">
+  <div class="sh">
+    <div class="sh-bc">STEP 6 / 6 › 書き出し</div>
+    <div class="sh-ti">📤 最終書き出し・配信</div>
+    <div class="sh-su">プラットフォーム別プリセットで書き出し、DaVinci Resolveで最終仕上げ</div>
+  </div>
+  <div class="sb">
+    <div class="r2">
+      <div class="card">
+        <div class="cl">📱 Instagram Reel</div>
+        <div style="font-family:var(--mon);font-size:11px;color:var(--c2);line-height:1.9;margin-bottom:10px;">
+          解像度：1080×1920 (9:16)<br>コーデック：H.264 / AAC 128k<br>
+          最大BR：3,500 kbps / 30fps<br>最大サイズ：650 MB</div>
+        <button class="btn btn-p" onclick="exportFor('instagram')">📱 Instagram用に書き出し</button>
+      </div>
+      <div class="card">
+        <div class="cl">▶️ YouTube / LP</div>
+        <div style="font-family:var(--mon);font-size:11px;color:var(--c2);line-height:1.9;margin-bottom:10px;">
+          解像度：1920×1080 (16:9)<br>コーデック：H.264 / AAC 192k<br>
+          CRF：18（高品質）<br>Web最適化：faststart</div>
+        <button class="btn btn-p" onclick="exportFor('youtube')">▶️ YouTube/LP用に書き出し</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cl">🎬 最終仕上げ（DaVinci Resolve）</div>
+      <div class="alert a-info" style="margin-bottom:10px;">DaVinci Resolve（無料版）でカラーグレーディング・ロゴオーバーレイ・細かい編集を行うと品質が大幅向上します。</div>
+      <button class="btn btn-g" onclick="window.open('https://www.blackmagicdesign.com/products/davinciresolve','_blank')">⬇️ DaVinci Resolve をダウンロード（無料）</button>
+    </div>
+    <div class="brow">
+      <button class="btn btn-grn" onclick="completePipeline()">🎉 完了 — 新しい動画を作成</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SETUP ══ -->
+<div class="stage" id="stage-setup">
+  <div class="sh"><div class="sh-ti">🔧 Windows セットアップ</div><div class="sh-su">PowerShell（管理者）でコマンドをコピー&実行</div></div>
+  <div class="sb">
+    <div class="code">
+      <div class="ch"><span>一括インストール（PowerShell 管理者）</span>
+        <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpEl('setup-bd')">📋 コピー</button></div>
+      <div class="cb" id="setup-bd">Set-ExecutionPolicy Bypass -Scope Process -Force
+iex ((New-Object System.Net.WebClient).DownloadString(<span class="cs">'https://community.chocolatey.org/install.ps1'</span>))
+<span class="ck">choco install</span> ffmpeg nodejs-lts python git -y
+<span class="ck">npm install -g</span> @anthropic-ai/claude-code
+<span class="ck">pip install</span> moviepy pillow requests python-dotenv tqdm
+<span class="cv">$dirs</span> = @(<span class="cs">"C:\VideoProduction\raw"</span>,<span class="cs">"C:\VideoProduction\generated"</span>,<span class="cs">"C:\VideoProduction\assets\images"</span>,
+           <span class="cs">"C:\VideoProduction\assets\audio"</span>,<span class="cs">"C:\VideoProduction\assets\srt"</span>,<span class="cs">"C:\VideoProduction\edited"</span>,
+           <span class="cs">"C:\VideoProduction\exports\instagram"</span>,<span class="cs">"C:\VideoProduction\exports\youtube"</span>,
+           <span class="cs">"C:\VideoProduction\exports\lp"</span>,<span class="cs">"C:\VideoProduction\scripts"</span>)
+<span class="cv">$dirs</span> | ForEach-Object { New-Item -ItemType Directory -Force -Path <span class="cv">$_</span> | Out-Null }
+Write-Host <span class="cs">"✅ セットアップ完了 — ffmpeg, node, claude, python"</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCRIPTS ══ -->
+<div class="stage" id="stage-scripts">
+  <div class="sh"><div class="sh-ti">⚙️ PowerShell スクリプト集</div><div class="sh-su">C:\VideoProduction\scripts\ に保存して使用</div></div>
+  <div class="sb">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+      <button class="btn btn-g" onclick="showSc('concat')">🔗 クリップ結合</button>
+      <button class="btn btn-g" onclick="showSc('to916')">📱 9:16変換</button>
+      <button class="btn btn-g" onclick="showSc('subtitle')">💬 字幕挿入</button>
+      <button class="btn btn-g" onclick="showSc('audio')">🎵 音声合成</button>
+      <button class="btn btn-g" onclick="showSc('export')">📤 書き出し</button>
+      <button class="btn btn-g" onclick="showSc('full')">⚡ フルパイプライン</button>
+    </div>
+    <div class="code">
+      <div class="ch"><span id="sc-ti">スクリプトを選択</span>
+        <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpEl('sc-bd')">📋 コピー</button></div>
+      <div class="cb" id="sc-bd"><span class="cc"># 上のボタンからスクリプトを選択してください</span></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ══ RIGHT PANEL ══ -->
+<aside class="rpanel">
+  <div>
+    <div class="rpl">ツール状態</div>
+    <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td twn"></div>Sora</div><span class="tv" id="rp-sora">～4/26</span></div>
+    <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton"></div>Veo 3.1</div><span class="tv">50c/月</span></div>
+    <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton"></div>Kling AI</div><span class="tv">66c/日</span></div>
+    <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton"></div>GPT Image</div><span class="tv">50枚/3h</span></div>
+    <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton"></div>VOICEVOX</div><span class="tv">無制限</span></div>
+    <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton"></div>Claude API</div><span class="tv">Maxプラン</span></div>
+  </div>
+  <div>
+    <div class="rpl">今日の進捗</div>
+    <div class="stat-g">
+      <div class="stat"><div class="sv2" id="st-clip">0</div><div class="sk2">クリップ</div></div>
+      <div class="stat"><div class="sv2" id="st-exp">0</div><div class="sk2">書き出し</div></div>
+    </div>
+  </div>
+  <div>
+    <div class="rpl">Sora 残り時間</div>
+    <div style="font-family:var(--mon);font-size:22px;font-weight:600;color:var(--yel);text-align:center;padding:8px 0;" id="rp-cd">—</div>
+    <div style="font-family:var(--mon);font-size:9px;color:var(--c3);text-align:center;">4/26 23:59 JST</div>
+  </div>
+  <div>
+    <div class="rpl">クイックアクセス</div>
+    <button class="qab" onclick="window.open('https://sora.com','_blank')">🔥 Sora</button>
+    <button class="qab" onclick="window.open('https://vids.google.com','_blank')">☁️ Google Vids</button>
+    <button class="qab" onclick="window.open('https://klingai.com','_blank')">🎬 Kling AI</button>
+    <button class="qab" onclick="window.open('https://claude.ai','_blank')">✨ Claude Max</button>
+    <button class="qab" onclick="window.open('https://voicevox.hiroshiba.jp/','_blank')">🔊 VOICEVOX</button>
+  </div>
+</aside>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+var S = {
+  brand:'scalp', purpose:'reel', scene:'before-after', tone:'trust', kw:'',
+  genP:'', genN:'', genO:'', genM:'',
+  clips:[], expCnt:0,
+  w:1080, h:1920, dur:10, crf:20, fps:30, cdc:'libx264', maxbr:8000, abr:192, lbl:'Instagram Reel'
+};
+
+var brands = {
+  scalp:{ name:'スカルプインク（SMP）', tgt:'薄毛・薄毛進行に悩む30〜50代男性' },
+  agent:{ name:'My Agent PRO（不動産）', tgt:'投資不動産・資産管理・相続を検討する40〜60代' }
+};
+
+// ════════════════════════════════════════
+// COUNTDOWN
+// ════════════════════════════════════════
+function updCD() {
+  var dl = new Date('2026-04-26T23:59:59+09:00');
+  var now = new Date();
+  var diff = dl - now;
+  var d = Math.max(0, Math.floor(diff/86400000));
+  var h = Math.max(0, Math.floor((diff%86400000)/3600000));
+  var m = Math.max(0, Math.floor((diff%3600000)/60000));
+  var txt = diff<=0 ? '終了済み' : d+'日 '+h+'時間 '+m+'分';
+  var el = document.getElementById('cd-top');
+  if(el) el.textContent = '⏳ Sora 残り：'+txt;
+  var rp = document.getElementById('rp-cd');
+  if(rp) rp.textContent = diff<=0 ? '終了済み' : '残 '+d+'日 '+h+'h';
+  var sd = document.getElementById('s3-days');
+  if(sd) sd.textContent = d;
+  var rpS = document.getElementById('rp-sora');
+  if(rpS) rpS.textContent = '残'+d+'日';
+}
+updCD(); setInterval(updCD,30000);
+
+// ════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════
+function gs(id) {
+  document.querySelectorAll('.stage').forEach(function(s){ s.classList.remove('active'); });
+  var t = document.getElementById('stage-'+id);
+  if(t) t.classList.add('active');
+  document.querySelectorAll('.nb').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.nb').forEach(function(b){
+    var oc = b.getAttribute('onclick');
+    if(oc && oc.indexOf("'"+id+"'")>-1) b.classList.add('active');
+  });
+  if(id==='s3' && S.genP) document.getElementById('s3-pb').textContent = S.genP;
+  if(id==='s4' && S.genN) document.getElementById('s4-nar').value = S.genN;
+  if(id==='s5') { syncAll(); }
+}
+
+function setBrand(b){ S.brand=b; document.getElementById('cfg-brand').value=b; onCfg(); }
+function markDone(id){ var el=document.getElementById(id); if(el){el.textContent='✓'; el.closest('.nb') && el.closest('.nb').classList.add('done'); } }
+
+// ════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════
+function onCfg() {
+  S.brand   = document.getElementById('cfg-brand').value;
+  S.purpose = document.getElementById('cfg-purpose').value;
+  S.scene   = document.getElementById('cfg-scene').value;
+  S.tone    = document.getElementById('cfg-tone').value;
+  S.kw      = document.getElementById('cfg-kw').value;
+  var b = brands[S.brand];
+  var pu = {reel:'Instagram Reel（9:16）',lp:'LP横動画（16:9）',youtube:'YouTube（16:9）',story:'Story縦動画（9:16）'};
+  document.getElementById('cfg-preview').innerHTML =
+    '<strong>確認：</strong>'+b.name+' / '+pu[S.purpose]+'<br>ターゲット：'+b.tgt;
+}
+onCfg();
+
+// ════════════════════════════════════════
+// AI GENERATION
+// ════════════════════════════════════════
+function genAll() {
+  var btn=document.getElementById('btn-gen');
+  var ic=document.getElementById('gen-ic');
+  var lb=document.getElementById('gen-lb');
+  btn.disabled=true; ic.textContent='⟳'; lb.textContent='AIが生成中…';
+  setAIO('out-vp',true); setAIO('out-nr',true); setAIO('out-ov',true); setAIO('out-mt',true);
+  var b=brands[S.brand];
+  var toneMap={trust:'信頼感・専門性',emotional:'感動・共感',luxury:'高級・洗練',energetic:'活力・変身'};
+  var sys='あなたはブランド「'+b.name+'」の動画制作AIです。ターゲット：'+b.tgt+'。トーン：'+toneMap[S.tone]+'。\n必ず以下の形式で：\n【動画プロンプト】\n（英語、200語以内、cinematic/photorealistic）\n【ナレーション原稿】\n（日本語、'+S.dur+'秒テンポ）\n【テキストオーバーレイ】\n（5語以内×3枚、改行区切り）\n【BGM・シーン構成メモ】\n（3行以内）';
+  var user='用途：'+S.purpose+' / シーン：'+S.scene+' / 追加KW：'+(S.kw||'なし');
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:[{role:'user',content:user}]})
+  }).then(function(r){return r.json();}).then(function(data){
+    var text=(data.content&&data.content.find(function(c){return c.type==='text';})||{}).text||'';
+    S.genP=exSec(text,'動画プロンプト'); S.genN=exSec(text,'ナレーション原稿');
+    S.genO=exSec(text,'テキストオーバーレイ'); S.genM=exSec(text,'BGM・シーン構成メモ');
+    setAIO('out-vp',false,S.genP||'（再試行してください）');
+    setAIO('out-nr',false,S.genN||'—'); setAIO('out-ov',false,S.genO||'—'); setAIO('out-mt',false,S.genM||'—');
+    document.getElementById('btn-s3').disabled=false;
+  }).catch(function(){ loadPreset(true); }).then(function(){
+    btn.disabled=false; ic.textContent='✨'; lb.textContent='再生成（Claude API）';
+  });
+}
+
+function exSec(text,hdr){
+  var re=new RegExp('【'+hdr+'】\\s*([\\s\\S]*?)(?=【|$)','i');
+  var m=text.match(re); return m?m[1].trim():'';
+}
+
+function setAIO(id,loading,text){
+  var el=document.getElementById(id); if(!el)return;
+  el.classList.toggle('empty',!loading&&!text);
+  el.classList.toggle('loading',loading);
+  if(!loading) el.textContent=text||'—';
+  else el.textContent='';
+}
+
+function loadPreset(fb){
+  var p={scalp:{video:'Extreme close-up cinematic shot of scalp micropigmentation artist working with precise needle strokes. Ultra-realistic skin texture, warm studio lighting, shallow depth of field. Natural hairline forming. 4K photorealistic, 9:16 vertical.',narration:'薄毛の悩み、もう一人で抱え込まなくていい。\nスカルプインクは、天然色素で自然な髪の毛を再現する技術です。\n施術翌日から、鏡を見るのが楽しみに変わります。\nまずは無料相談から。',overlay:'あなたは一人じゃない\n自然な仕上がりに感動\n無料相談 受付中',meta:'BGM：Warm Ambient / 70-80BPM\nシーン：CU（4s）→BA（6s）→表情（3s）→CTA（2s）'},
+    agent:{video:'Smooth cinematic gimbal shot of premium Tokyo residential property at golden hour. Floor-to-ceiling windows, minimalist interior, city skyline. Professional real estate cinematography. 4K, 16:9.',narration:'理想の不動産との出会いを、エージェントが責任を持ってサポートします。\n18年の実績と最新AIデータ分析で、あなたの資産を最大化。\nMy Agent PRO — 今すぐ無料相談を。',overlay:'18年の実績と信頼\nAI分析で最適提案\n今すぐ無料相談',meta:'BGM：Professional Cinematic / 60-70BPM\nシーン：外観（5s）→室内（15s）→エージェント（5s）→CTA（5s）'}};
+  var d=p[S.brand];
+  S.genP=d.video; S.genN=d.narration; S.genO=d.overlay; S.genM=d.meta;
+  setAIO('out-vp',false,fb?'⚠️ API失敗。プリセット：\n\n'+d.video:d.video);
+  setAIO('out-nr',false,d.narration); setAIO('out-ov',false,d.overlay); setAIO('out-mt',false,d.meta);
+  document.getElementById('btn-s3').disabled=false;
+}
+
+// ════════════════════════════════════════
+// TIMELINE
+// ════════════════════════════════════════
+function addClip(name,dur){
+  if(S.clips.some(function(c){return c.name===name;})){alert('「'+name+'」は追加済みです');return;}
+  S.clips.push({name:name,dur:dur});
+  renderTL(); updStats();
+  document.getElementById('btn-s4').disabled=false;
+  var badge=document.getElementById('tl-badge');
+  badge.style.display=''; badge.textContent=S.clips.length+'クリップ';
+  document.querySelectorAll('.cc2').forEach(function(c){
+    if(c.querySelector('.cn2')&&c.querySelector('.cn2').textContent===name.replace('.mp4','').replace(/_/g,' '))
+      c.classList.add('intl');
+  });
+}
+function removeClip(i){
+  S.clips.splice(i,1); renderTL();
+  var badge=document.getElementById('tl-badge');
+  if(S.clips.length===0) badge.style.display='none'; else badge.textContent=S.clips.length+'クリップ';
+}
+function renderTL(){
+  var tr=document.getElementById('tl-tr'),tot=document.getElementById('tl-tot');
+  if(S.clips.length===0){tr.innerHTML='<div class="tle">クリップを追加してください</div>';tot.textContent='合計: 0秒';return;}
+  var sec=0;
+  tr.innerHTML=S.clips.map(function(c,i){sec+=parseInt(c.dur)||10;
+    return '<div class="tlc">🎬 '+c.name.replace('.mp4','')+'<span style="color:var(--c3);font-size:9px;margin-left:4px;">'+c.dur+'</span>'
+      +'<span onclick="event.stopPropagation();removeClip('+i+')" style="margin-left:5px;color:var(--red);cursor:pointer;opacity:.7;">✕</span></div>';}).join('');
+  tot.textContent='合計: '+sec+'秒 ('+S.clips.length+'c)';
+}
+
+// ════════════════════════════════════════
+// FORMAT / DURATION / QUALITY
+// ════════════════════════════════════════
+function selFmt(el){
+  document.querySelectorAll('.fc').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+  S.w=+el.dataset.w; S.h=+el.dataset.h; S.lbl=el.querySelector('.fn').innerText.replace('\n',' ');
+  document.getElementById('cw').value=S.w; document.getElementById('ch').value=S.h;
+  syncAll();
+}
+function applyCustom(){
+  var w=+document.getElementById('cw').value, h=+document.getElementById('ch').value;
+  if(w<100||h<100||w>7680||h>7680)return;
+  S.w=w; S.h=h; S.lbl='カスタム '+w+'×'+h;
+  document.querySelectorAll('.fc').forEach(function(c){c.classList.remove('active');});
+  syncAll();
+}
+function selDur(el){
+  document.querySelectorAll('.dc').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+  var sec=+el.dataset.sec;
+  if(sec>0){S.dur=sec; document.getElementById('dur-sl').value=Math.min(sec,300); document.getElementById('dur-in').value=sec; updDurDisp(); }
+}
+function syncDurSl(v){
+  S.dur=+v; document.getElementById('dur-in').value=v;
+  document.querySelectorAll('.dc').forEach(function(c){c.classList.remove('active');});
+  var m=Array.from(document.querySelectorAll('.dc')).find(function(c){return +c.dataset.sec===S.dur;});
+  if(m) m.classList.add('active');
+  updDurDisp();
+}
+function syncDurIn(v){
+  S.dur=Math.max(1,+v); document.getElementById('dur-sl').value=Math.min(S.dur,300);
+  document.querySelectorAll('.dc').forEach(function(c){c.classList.remove('active');});
+  var m=Array.from(document.querySelectorAll('.dc')).find(function(c){return +c.dataset.sec===S.dur;});
+  if(m) m.classList.add('active');
+  updDurDisp();
+}
+function updDurDisp(){
+  document.getElementById('dur-disp').textContent=S.dur+'s';
+  var h=Math.floor(S.dur/3600),m=Math.floor((S.dur%3600)/60),s=S.dur%60;
+  var hms=''; if(h>0)hms+=h+'h '; if(m>0)hms+=m+'m '; hms+=s+'s';
+  document.getElementById('dur-hms').textContent='= '+hms;
+  syncAll();
+}
+function updCRF(v){
+  S.crf=+v; document.getElementById('crf-val').textContent='CRF '+v;
+  document.getElementById('crf-fil').style.width=((35-v)/(35-12)*100)+'%'; syncAll();
+}
+function updBR(v){
+  S.maxbr=+v; document.getElementById('br-val').textContent=(v/1000).toFixed(1)+' Mbps';
+  document.getElementById('br-fil').style.width=(v/50000*100)+'%'; syncAll();
+}
+function updABR(v){
+  S.abr=+v; document.getElementById('abr-val').textContent=v+' kbps';
+  document.getElementById('abr-fil').style.width=((v-64)/(320-64)*100)+'%'; syncAll();
+}
+function selFPS(el){
+  document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('active-fps');});
+  el.classList.add('active-fps'); S.fps=+el.dataset.fps; syncAll();
+}
+function selCDC(el){
+  document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('active-cdc');});
+  el.classList.add('active-cdc'); S.cdc=el.dataset.cdc; syncAll();
+}
+
+// ════════════════════════════════════════
+// SYNC ALL (preview + specs + commands)
+// ════════════════════════════════════════
+function syncAll(){
+  updPreview(); updSpecs(); buildSingleCmd(); buildSoraGuide(); buildCCInstr();
+}
+
+function gcd(a,b){return b===0?a:gcd(b,a%b);}
+
+function updPreview(){
+  var fr=document.getElementById('pv-fr'), sf=document.getElementById('pv-safe');
+  var MW=200, MH=280, ar=S.w/S.h, fw, fh;
+  if(ar>=1){fw=MW;fh=Math.round(MW/ar);if(fh>MH){fh=MH;fw=Math.round(MH*ar);}}
+  else{fh=MH;fw=Math.round(MH*ar);if(fw>MW){fw=MW;fh=Math.round(MW/ar);}}
+  fr.style.width=fw+'px'; fr.style.height=fh+'px';
+  var sw=Math.round(fw*.8),sh=Math.round(fh*.8);
+  sf.style.width=sw+'px'; sf.style.height=sh+'px';
+  sf.style.left=Math.round((fw-sw)/2)+'px'; sf.style.top=Math.round((fh-sh)/2)+'px';
+  var r=gcd(S.w,S.h), rs=(S.w/r)+':'+(S.h/r);
+  document.getElementById('pv-ratio').textContent=rs;
+  document.getElementById('pv-res').textContent=S.w+' × '+S.h+' px';
+  document.getElementById('pv-lbl').textContent=S.lbl.toUpperCase();
+}
+
+function updSpecs(){
+  var r=gcd(S.w,S.h), rs=(S.w/r)+':'+(S.h/r);
+  document.getElementById('sp-res').textContent=S.w+'×'+S.h;
+  document.getElementById('sp-ratio').textContent=rs;
+  document.getElementById('sp-dur').textContent=S.dur+'秒 / '+S.fps+'fps';
+  var cl={libx264:'H.264',libx265:'H.265','libvpx-vp9':'VP9'};
+  document.getElementById('sp-cdc').textContent=cl[S.cdc]||S.cdc;
+  var cq=S.crf<=15?'最高品質':S.crf<=20?'高品質':S.crf<=25?'標準':'圧縮重視';
+  document.getElementById('sp-crf').textContent='CRF '+S.crf+' '+cq;
+  var szMB=((S.maxbr+S.abr)*S.dur/8/1000).toFixed(1);
+  document.getElementById('sp-sz').textContent='〜 '+szMB+' MB';
+  document.getElementById('sp-br').textContent=(S.maxbr/1000).toFixed(1)+' Mbps + '+S.abr+'k音声';
+  var um={'9:16':'SNS縦（Reel/Shorts/Story）','16:9':'YouTube / LP 横動画','1:1':'スクエア SNS投稿'};
+  document.getElementById('sp-use').textContent=um[rs]||S.lbl;
+}
+
+function buildSingleCmd(){
+  var r=gcd(S.w,S.h), rs=(S.w/r)+':'+(S.h/r);
+  var cl={libx264:'H.264',libx265:'H.265','libvpx-vp9':'VP9'};
+  document.getElementById('cmd-ti').textContent='FFmpeg — '+S.lbl+' '+S.w+'×'+S.h+' / '+S.dur+'s / '+S.fps+'fps / CRF'+S.crf;
+  var vf;
+  if(S.w===S.h) vf='crop=min(iw\\,ih):min(iw\\,ih),scale='+S.w+':'+S.h+',setsar=1';
+  else if(S.h>S.w) vf='crop=ih*'+S.w+'/'+S.h+':ih:(iw-ih*'+S.w+'/'+S.h+')/2:0,scale='+S.w+':'+S.h+',setsar=1';
+  else vf='scale='+S.w+':'+S.h+':force_original_aspect_ratio=decrease,pad='+S.w+':'+S.h+':(ow-iw)/2:(oh-ih)/2:color=black,setsar=1';
+  var outName=S.lbl.replace(/\s/g,'_')+'_'+S.w+'x'+S.h+'_'+S.dur+'s.mp4';
+  var cmd='<span class="cc"># ══ OUTPUT: '+S.lbl.toUpperCase()+' | '+S.w+'×'+S.h+' ('+rs+') | '+S.dur+'s | '+S.fps+'fps | CRF'+S.crf+' | '+cl[S.cdc]+' ══</span>\n\n'
+    +'ffmpeg <span class="ck">-i</span> <span class="cs">"C:\\VideoProduction\\edited\\input.mp4"</span> \\\n'
+    +'  <span class="ck">-ss</span> 0 <span class="ck">-t</span> '+S.dur+' \\\n'
+    +'  <span class="ck">-vf</span> <span class="cs">"'+vf+',fps='+S.fps+'"</span> \\\n'
+    +'  <span class="ck">-c:v</span> '+S.cdc+' <span class="ck">-crf</span> '+S.crf+' <span class="ck">-preset</span> slow \\\n'
+    +'  <span class="ck">-maxrate</span> '+S.maxbr+'k <span class="ck">-bufsize</span> '+(S.maxbr*2)+'k \\\n'
+    +'  <span class="ck">-c:a</span> aac <span class="ck">-b:a</span> '+S.abr+'k <span class="ck">-ar</span> 44100 \\\n'
+    +'  <span class="ck">-movflags</span> +faststart \\\n'
+    +'  <span class="cs">"C:\\VideoProduction\\exports\\'+outName+'"</span>\n\n'
+    +'Write-Host <span class="cs">"✅ 書き出し完了: '+outName+'"</span>';
+  document.getElementById('cmd-bd').innerHTML=cmd;
+}
+
+function buildBatch(){
+  var sel=Array.from(document.querySelectorAll('.bi.sel'));
+  document.getElementById('bt-ti').textContent='バッチ書き出し（'+sel.length+'フォーマット）';
+  if(!sel.length){document.getElementById('bt-bd').textContent='# フォーマットを選択してください';return;}
+  var cmd='<span class="cc"># ══ BATCH EXPORT: '+sel.length+'フォーマット | '+S.dur+'s | '+S.fps+'fps | CRF'+S.crf+' ══</span>\n\n'
+    +'<span class="cv">$in</span> = <span class="cs">"C:\\VideoProduction\\edited\\input.mp4"</span>\n'
+    +'<span class="cv">$ts</span> = Get-Date -f <span class="cs">\'yyyyMMdd_HHmm\'</span>\n'
+    +'New-Item -ItemType Directory -Force -Path <span class="cs">"C:\\VideoProduction\\exports\\batch"</span> | Out-Null\n\n';
+  sel.forEach(function(el,i){
+    var w=+el.dataset.w, h=+el.dataset.h, lbl=el.dataset.lbl.replace(/\s/g,'_');
+    var vf;
+    if(w===h) vf='crop=min(iw\\,ih):min(iw\\,ih),scale='+w+':'+h+',setsar=1';
+    else if(h>w) vf='crop=ih*'+w+'/'+h+':ih:(iw-ih*'+w+'/'+h+')/2:0,scale='+w+':'+h+',setsar=1';
+    else vf='scale='+w+':'+h+':force_original_aspect_ratio=decrease,pad='+w+':'+h+':(ow-iw)/2:(oh-ih)/2:color=black,setsar=1';
+    cmd+='<span class="cc"># ['+(i+1)+'/'+sel.length+'] '+el.querySelector('.bn').innerText.trim()+' — '+w+'×'+h+'</span>\n'
+      +'ffmpeg <span class="ck">-i</span> <span class="cv">$in</span> <span class="ck">-ss</span> 0 <span class="ck">-t</span> '+S.dur+' \\\n'
+      +'  <span class="ck">-vf</span> <span class="cs">"'+vf+',fps='+S.fps+'"</span> \\\n'
+      +'  <span class="ck">-c:v</span> '+S.cdc+' <span class="ck">-crf</span> '+S.crf+' <span class="ck">-preset</span> fast \\\n'
+      +'  <span class="ck">-c:a</span> aac <span class="ck">-b:a</span> '+S.abr+'k <span class="ck">-movflags</span> +faststart \\\n'
+      +'  <span class="cs">"C:\\VideoProduction\\exports\\batch\\'+lbl+'_'+w+'x'+h+'_<span class="cv">$ts</span>.mp4"</span>\n'
+      +'Write-Host <span class="cs">"  ✅ ['+(i+1)+'/'+sel.length+'] '+lbl+' '+w+'×'+h+'"</span>\n\n';
+  });
+  cmd+='Write-Host <span class="cs">"🎉 バッチ完了！exports\\batch\\ を確認してください"</span>';
+  document.getElementById('bt-bd').innerHTML=cmd;
+}
+
+function togBatch(el){ el.classList.toggle('sel'); }
+
+function buildSoraGuide(){
+  var r=gcd(S.w,S.h), rs=(S.w/r)+':'+(S.h/r);
+  var rOK=rs==='9:16'||rs==='16:9'||rs==='1:1';
+  var dOK=S.dur<=60;
+  var resNote=S.w>=3840?'⚠️ 4K — Soraは最大1080p。Veo 3.1 API（4K対応）またはFFmpegアップスケール推奨':
+    S.w>=1920?'✅ 1080p〜1440p — Sora: 1080p対応。Veo 3.1: 4Kまで対応':'✅ 720p以下 — 全ツール対応';
+  var durNote=S.dur<=8?'✅ 8秒以内 — Sora / Veo / Kling 全対応':
+    S.dur<=10?'✅ 10秒 — Sora: 対応。Veo: 8秒×2クリップを結合推奨。Kling: 対応':
+    S.dur<=60?'✅ '+S.dur+'秒 — Sora: 対応（最大60秒）。Veo: 8秒×'+Math.ceil(S.dur/8)+'クリップを結合。Kling: 対応':
+    '⚠️ 60秒超 — 全ツールで非対応。'+Math.ceil(S.dur/60)+'クリップに分割してFFmpegで結合';
+  var txt='<span class="cc">══ 対象設定: '+S.lbl+' | '+S.w+'×'+S.h+' ('+rs+') | '+S.dur+'秒 ══</span>\n\n'
+    +'<span class="ck">【比率】</span>  <span class="cs">'+(rOK?'✅ '+rs+' — Sora/Veo/Kling で直接選択可能':'⚠️ '+rs+' — 非標準。16:9で生成後FFmpegでクロップ推奨')+'</span>\n\n'
+    +'<span class="ck">【解像度】</span><span class="cs">'+resNote+'</span>\n\n'
+    +'<span class="ck">【尺】</span>    <span class="cs">'+durNote+'</span>\n\n'
+    +'<span class="cc">────── ツール別設定 ──────</span>\n\n'
+    +'<span class="cv">Sora (sora.com):</span>\n'
+    +'  比率:  '+(rOK?'✅ '+rs+' で直接指定':'⚠️ → 16:9生成 → FFmpegクロップ')+'\n'
+    +'  尺:    '+(S.dur<=60?'✅ '+S.dur+'秒で指定可能':'⚠️ → 60秒×'+Math.ceil(S.dur/60)+'本に分割')+'\n'
+    +'  解像度: '+(S.w<=1920?'✅ 対応':'⚠️ 最大1080p — FFmpegで4Kアップスケール')+'\n\n'
+    +'<span class="cv">Google Vids / Veo 3.1:</span>\n'
+    +'  比率:  '+(rs==='9:16'||rs==='16:9'?'✅ ネイティブ対応':'⚠️ → 変換後FFmpeg')+'\n'
+    +'  尺:    8秒/クリップ → '+Math.ceil(S.dur/8)+' クリップ生成 → FFmpegで結合\n'
+    +'  解像度: '+(S.w>=3840?'✅ 4K対応（Veo 3.1 Fast API）':'✅ 1080p対応')+'\n\n'
+    +'<span class="cv">Kling AI (klingai.com):</span>\n'
+    +'  比率:  ✅ 9:16 / 16:9 / 1:1 対応\n'
+    +'  尺:    ✅ 最大3分（'+S.dur+'秒 → OK）\n'
+    +'  解像度: ✅ 1080p対応\n\n'
+    +'<span class="cc">────── FFmpeg後処理（比率変換） ──────</span>\n\n'
+    +'<span class="cc"># 16:9生成動画 → '+rs+' に変換</span>\n'
+    +'ffmpeg <span class="ck">-i</span> <span class="cs">"generated.mp4"</span> <span class="ck">-vf</span> <span class="cs">"crop=ih*'+S.w+'/'+S.h+':ih:(iw-ih*'+S.w+'/'+S.h+')/2:0,scale='+S.w+':'+S.h+'"</span> <span class="cs">"out_'+S.w+'x'+S.h+'.mp4"</span>';
+  document.getElementById('sg-bd').innerHTML=txt;
+}
+
+function buildCCInstr(){
+  var r=gcd(S.w,S.h), rs=(S.w/r)+':'+(S.h/r);
+  var cl={libx264:'H.264',libx265:'H.265','libvpx-vp9':'VP9'};
+  var txt='<span class="cc"># C:\\VideoProduction で "claude" を起動して以下を貼り付けてください</span>\n\n'
+    +'「C:\\VideoProduction\\edited\\input.mp4 を変換してください。\n\n'
+    +'【出力設定】\n'
+    +'  解像度: '+S.w+'×'+S.h+'ピクセル（'+rs+'）\n'
+    +'  尺: '+S.dur+'秒\n'
+    +'  フレームレート: '+S.fps+'fps\n'
+    +'  品質: CRF '+S.crf+'\n'
+    +'  コーデック: '+cl[S.cdc]+'\n'
+    +'  最大ビットレート: '+(S.maxbr/1000).toFixed(1)+' Mbps\n'
+    +'  音声: AAC '+S.abr+'kbps\n\n'
+    +'  出力先: C:\\VideoProduction\\exports\\'+S.lbl.replace(/\s/g,'_')+'_'+S.w+'x'+S.h+'_'+S.dur+'s.mp4\n\n'
+    +(rs!=='16:9'?'  変換前が16:9の場合、'+rs+'になるようセンタークロップしてください。\n':''  )
+    +'  完了後にファイルサイズと実行FFmpegコマンドを教えてください。」';
+  document.getElementById('cc-bd').innerHTML=txt;
+}
+
+function showCC(){
+  buildCCInstr();
+  document.querySelectorAll('.otab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.otcnt').forEach(function(c){c.classList.remove('active');});
+  document.getElementById('ot-cc').classList.add('active');
+  Array.from(document.querySelectorAll('.otab')).find(function(t){return t.textContent.includes('Claude Code');})?.classList.add('active');
+}
+
+// ════════════════════════════════════════
+// OUTPUT TABS
+// ════════════════════════════════════════
+function switchOT(el,id){
+  document.querySelectorAll('.otab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.otcnt').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+  document.getElementById(id).classList.add('active');
+  if(id==='ot-batch') buildBatch();
+}
+
+// ════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════
+function exportFor(pl){
+  S.expCnt++; updStats();
+  gs('s5');
+  document.getElementById('cmd-ti').textContent='FFmpeg — '+pl+' 最適化';
+  alert('✅ Step 5「編集・出力設定」のFFmpegコマンドをPowerShellで実行してください。\n\nエクスポート先: C:\\VideoProduction\\exports\\'+pl+'\\');
+}
+
+function completePipeline(){
+  S.clips=[]; S.genP=''; renderTL();
+  document.querySelectorAll('.cc2').forEach(function(c){c.classList.remove('intl');});
+  document.getElementById('tl-badge').style.display='none';
+  ['nb2','nb3','nb4','nb5','nb6'].forEach(function(id,i){
+    var el=document.getElementById(id); if(el){el.textContent=i+2; el.closest('.nb')&&el.closest('.nb').classList.remove('done');}
+  });
+  gs('s1');
+  alert('🎉 完了！新しい動画制作を開始します。');
+}
+
+// ════════════════════════════════════════
+// SCRIPTS
+// ════════════════════════════════════════
+var scripts={
+  concat:{name:'01_concat.ps1 — クリップ結合',code:'param([string]$InputDir="C:\\VideoProduction\\generated",[string]$Output="C:\\VideoProduction\\edited\\concat.mp4")\n$files=Get-ChildItem $InputDir -Filter *.mp4 | Sort-Object Name\n$list="$env:TEMP\\vp_list.txt"\n$files | ForEach-Object { "file \'$($_.FullName)\'" } | Set-Content $list -Encoding UTF8\nffmpeg -f concat -safe 0 -i $list -c copy $Output\nRemove-Item $list\nWrite-Host "✅ 結合完了: $Output ($($files.Count)クリップ)"'},
+  to916:{name:'02_to916.ps1 — 16:9→9:16 一括変換',code:'param([string]$InputDir="C:\\VideoProduction\\generated",[string]$OutputDir="C:\\VideoProduction\\exports\\instagram")\nNew-Item -ItemType Directory -Force -Path $OutputDir | Out-Null\nGet-ChildItem $InputDir -Filter *.mp4 | ForEach-Object {\n    $out=Join-Path $OutputDir ("reel_"+$_.Name)\n    ffmpeg -i $_.FullName -vf "crop=607:1080:(iw-607)/2:0,scale=1080:1920" -c:v libx264 -crf 20 -preset fast -c:a aac $out\n    Write-Host "✅ $($_.Name) → $out"\n}'},
+  subtitle:{name:'03_subtitle.ps1 — 字幕焼き込み',code:'param([string]$Video="C:\\VideoProduction\\edited\\concat.mp4",[string]$Srt="C:\\VideoProduction\\assets\\srt\\subs.srt",[string]$Output="C:\\VideoProduction\\edited\\subtitled.mp4")\n$SrtEsc=$Srt.Replace("\\","\\\\").Replace(":","\\:")\nffmpeg -i $Video -vf "subtitles=\'${SrtEsc}\':force_style=\'FontName=Noto Sans JP,FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Alignment=2,MarginV=30\'" -c:a copy $Output\nWrite-Host "✅ 字幕挿入完了: $Output"'},
+  audio:{name:'04_audio.ps1 — BGM＋ナレーション合成',code:'param([string]$Video="C:\\VideoProduction\\edited\\subtitled.mp4",[string]$Nar="C:\\VideoProduction\\assets\\audio\\narration.wav",[string]$BGM="C:\\VideoProduction\\assets\\audio\\bgm.mp3",[string]$Output="C:\\VideoProduction\\edited\\with_audio.mp4",[float]$NV=0.9,[float]$BV=0.2)\nffmpeg -i $Video -i $Nar -i $BGM -filter_complex "[1:a]volume=${NV}[n];[2:a]volume=${BV}[b];[n][b]amix=inputs=2:duration=first[out]" -map 0:v -map "[out]" -c:v copy -c:a aac -b:a 192k $Output\nWrite-Host "✅ 音声合成完了: $Output"'},
+  export:{name:'05_export.ps1 — SNS最終書き出し',code:'param([string]$Input="C:\\VideoProduction\\edited\\with_audio.mp4",[string]$Platform="instagram")\n$ts=Get-Date -f "yyyyMMdd_HHmm"\n$out="C:\\VideoProduction\\exports\\${Platform}\\${ts}_output.mp4"\nNew-Item -ItemType Directory -Force -Path (Split-Path $out) | Out-Null\nswitch($Platform){\n    "instagram"{ ffmpeg -i $Input -vcodec libx264 -crf 23 -preset slow -maxrate 3500k -bufsize 7000k -r 30 -acodec aac -b:a 128k -ar 44100 -movflags +faststart $out }\n    "youtube"  { ffmpeg -i $Input -vcodec libx264 -crf 18 -preset slow -acodec aac -b:a 192k -movflags +faststart $out }\n    "lp"       { ffmpeg -i $Input -vcodec libx264 -crf 18 -preset slow -s 1920x1080 -acodec aac -b:a 192k -movflags +faststart $out }\n}\nWrite-Host "✅ 書き出し完了: $out"'},
+  full:{name:'06_full_pipeline.ps1 — ワンコマンド全工程',code:'param([string]$GenDir="C:\\VideoProduction\\generated",[string]$Srt="C:\\VideoProduction\\assets\\srt\\subs.srt",[string]$Nar="C:\\VideoProduction\\assets\\audio\\narration.wav",[string]$BGM="C:\\VideoProduction\\assets\\audio\\bgm.mp3",[string]$Platform="instagram")\n$s="C:\\VideoProduction\\scripts\\"\nWrite-Host "🎬 VIDEO PIPELINE 開始..."\n& "${s}01_concat.ps1" -InputDir $GenDir -Output "C:\\VideoProduction\\edited\\step1.mp4"\nif(Test-Path $Srt){ & "${s}03_subtitle.ps1" -Video "C:\\VideoProduction\\edited\\step1.mp4" -Srt $Srt -Output "C:\\VideoProduction\\edited\\step2.mp4"; $prev="C:\\VideoProduction\\edited\\step2.mp4" }\nelse{ $prev="C:\\VideoProduction\\edited\\step1.mp4" }\n& "${s}04_audio.ps1" -Video $prev -Nar $Nar -BGM $BGM -Output "C:\\VideoProduction\\edited\\step3.mp4"\n& "${s}05_export.ps1" -Input "C:\\VideoProduction\\edited\\step3.mp4" -Platform $Platform\nWrite-Host "🎉 完了！exports\\$Platform\\ を確認してください"'}
+};
+
+function showSc(k){
+  var s=scripts[k];
+  document.getElementById('sc-ti').textContent=s.name;
+  document.getElementById('sc-bd').textContent=s.code;
+}
+
+// ════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════
+function cpf(id){
+  var el=document.getElementById(id); if(!el)return;
+  var t=el.textContent||el.value||'';
+  navigator.clipboard.writeText(t).then(function(){flash(id);});
+}
+function cpEl(id){ cpf(id); }
+function flash(id){
+  var el=document.getElementById(id); if(!el)return;
+  el.classList.add('cf'); setTimeout(function(){el.classList.remove('cf');},400);
+}
+function cpOpen(promptId,url){
+  var t=document.getElementById(promptId).textContent;
+  if(t&&!t.startsWith('←')&&!t.startsWith('⚠️')){
+    navigator.clipboard.writeText(t).then(function(){window.open(url,'_blank');});
+  }else{window.open(url,'_blank');}
+}
+function updStats(){
+  document.getElementById('st-clip').textContent=S.clips.length;
+  document.getElementById('st-exp').textContent=S.expCnt;
+}
+function openVV(){
+  var t=document.getElementById('s4-nar').value;
+  if(t) navigator.clipboard.writeText(t);
+  window.open('https://voicevox.hiroshiba.jp/','_blank');
+  if(t) setTimeout(function(){alert('✅ 原稿をコピーしました。VOICEVOXのテキスト欄に貼り付けてください。');},300);
+}
+
+// INIT
+syncAll();
+</script>
+</body>
+</html>

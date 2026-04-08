@@ -16,6 +16,7 @@ projects/*/analytics/post-publish.md
 *.env.production
 config/secrets.yaml
 .claude/mcp-secrets.json
+.claude/settings.local.json
 
 # Temp files
 *.tmp

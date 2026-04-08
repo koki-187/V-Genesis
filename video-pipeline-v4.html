@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VIDEO PIPELINE v4 — V-Genesis System</title>
+<title>V-Genesis — AI動画制作システム</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -466,19 +466,47 @@ textarea:focus{border-color:var(--acc);}
 .error-log-item:last-child{border-bottom:none;}
 .error-log-item .elt{color:var(--c3);margin-right:6px;}
 
-/* ── TESTER SCORECARD (v4 new) ── */
-.tester-card{
-  background:var(--s2);border:1px solid var(--ln);border-radius:6px;
-  padding:8px 10px;margin-bottom:6px;
+
+/* ── MEDIA LIBRARY ── */
+.media-item{
+  background:var(--s2);border:1px solid var(--ln);border-radius:6px;overflow:hidden;
+  cursor:pointer;transition:border-color .2s,transform .15s;position:relative;
 }
-.tester-card .tc-name{font-size:11px;font-weight:600;margin-bottom:2px;}
-.tester-card .tc-role{font-family:var(--mon);font-size:9px;color:var(--c3);}
-.tester-card .tc-score-row{display:flex;align-items:center;gap:6px;margin-top:4px;}
-.tc-bar{flex:1;height:4px;background:var(--ln);border-radius:2px;overflow:hidden;}
-.tc-bar-fill{height:100%;border-radius:2px;transition:width .6s;}
-.tc-score-val{font-family:var(--mon);font-size:10px;font-weight:600;min-width:28px;text-align:right;}
-.tc-issues{font-family:var(--mon);font-size:9px;color:var(--c3);margin-top:3px;}
-.tc-fixed{color:var(--grn);}
+.media-item:hover{border-color:var(--acc);transform:scale(1.02);}
+.media-thumb{width:100%;height:80px;object-fit:cover;background:var(--s3);display:block;}
+.media-thumb-placeholder{width:100%;height:80px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:24px;}
+.media-name{padding:4px 6px;font-family:var(--mon);font-size:9px;color:var(--c2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.media-meta{padding:0 6px 4px;font-family:var(--mon);font-size:8px;color:var(--c3);}
+.media-actions{display:flex;gap:3px;padding:0 4px 4px;}
+.media-filter.active,.media-filter:focus{background:var(--acc);color:var(--bg);}
+/* ── TIMELINE ── */
+.tl-clip{
+  min-width:80px;height:52px;border-radius:5px;background:linear-gradient(135deg,var(--a2),var(--acc));
+  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;
+  cursor:grab;border:1px solid rgba(255,255,255,.15);position:relative;flex-shrink:0;padding:0 8px;
+  font-family:var(--mon);font-size:9px;color:var(--c1);user-select:none;
+}
+.tl-clip:active{cursor:grabbing;}
+.tl-clip .clip-dur{font-size:8px;color:rgba(255,255,255,.6);}
+.tl-clip .clip-del{position:absolute;top:2px;right:3px;font-size:9px;cursor:pointer;opacity:.5;}
+.tl-clip .clip-del:hover{opacity:1;}
+.tl-trans-marker{width:20px;height:52px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.active-trans{background:var(--acc);color:var(--bg);}
+/* ── COLOR GRADING ── */
+.lut-chip.active-lut{border-color:var(--acc) !important;}
+
+/* ── CHAPTER / THUMBNAIL / ANIM ── */
+.chapter-row input { background:var(--s3);border:1px solid var(--ln);color:var(--c1);padding:3px 6px;border-radius:4px; }
+.anim-chip { font-size:10px;padding:2px 7px; }
+#tn-canvas { cursor:crosshair; }
+/* ── LOGO REMOVER ── */
+#lr-canvas-wrap { position:relative;display:inline-block;width:100%;cursor:crosshair;border-radius:6px;overflow:hidden;border:1px solid var(--ln);background:var(--s3); }
+#lr-canvas { width:100%;display:block; }
+#lr-sel-box { position:absolute;border:2px solid var(--red);background:rgba(255,68,85,.15);pointer-events:none;display:none; }
+.lr-mode-btn { font-size:10px;padding:3px 9px;border-radius:4px;cursor:pointer;border:1px solid var(--ln);background:var(--s2);color:var(--c2);transition:all .15s; }
+.lr-mode-btn.active { background:var(--red);color:#fff;border-color:var(--red); }
+.lr-coord { width:58px;font-family:var(--mon);font-size:11px;background:var(--s3);border:1px solid var(--ln);color:var(--c1);padding:3px 6px;border-radius:4px;text-align:center; }
+#lr-preview-lbl { font-family:var(--mon);font-size:9px;color:var(--c3);text-align:center;padding:8px;pointer-events:none; }
 
 /* ── SNS LIMIT CHECKER (v4 new) ── */
 .sns-check{
@@ -524,7 +552,8 @@ body.beginner-mode .pro-only{display:none;}
     プロキシURL（CORSプロキシまたは自前サーバー）を設定するか、プリセットモードをご利用ください。</p>
     <div class="col">
       <label class="lbl">Anthropic API Key</label>
-      <input type="password" id="api-key-input" placeholder="sk-ant-..." style="background:var(--s2);border:1px solid var(--ln2);border-radius:5px;padding:7px 9px;color:var(--c1);font-family:var(--mon);font-size:12px;outline:none;width:100%;">
+      <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off" style="background:var(--s2);border:1px solid var(--ln2);border-radius:5px;padding:7px 9px;color:var(--c1);font-family:var(--mon);font-size:12px;outline:none;width:100%;">
+      <div id="api-key-set-hint" style="display:none;font-family:var(--mon);font-size:10px;color:var(--grn);margin-top:4px;">✅ 設定済み — 変更する場合のみ新しいキーを入力してください</div>
     </div>
     <div class="col">
       <label class="lbl">プロキシURL（任意）<span class="tip" data-tip="CORSを回避するためのプロキシサーバーURL。例: https://your-proxy.com/v1/messages">?</span></label>
@@ -584,7 +613,7 @@ body.beginner-mode .pro-only{display:none;}
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="logo">VIDEO PIPELINE <span class="logo-v">v4</span></div>
+  <div class="logo">V-Genesis <span class="logo-v">v5</span></div>
   <div class="pills">
     <div class="pill p-sora"><div class="dot"></div>Sora ~4/26</div>
     <div class="pill p-on"><div class="dot"></div>Veo 3.1</div>
@@ -606,6 +635,11 @@ body.beginner-mode .pro-only{display:none;}
 
 <!-- ══ SIDEBAR ══ -->
 <nav class="sidebar">
+  <div class="ng">
+    <div class="nl">素材管理</div>
+    <button class="nb" id="nav-media" onclick="gs('media')">&#127902; メディアライブラリ</button>
+  </div>
+  <div class="sdiv"></div>
   <div class="ng">
     <div class="nl">パイプライン</div>
     <button class="nb active" id="nav-s1" onclick="gs('s1')"><span>1.</span>台本・設定<span class="nm" id="nb1">1</span></button>
@@ -633,6 +667,58 @@ body.beginner-mode .pro-only{display:none;}
 
 <!-- ══ MAIN ══ -->
 <main class="main">
+
+<!-- ══ MEDIA LIBRARY ══ -->
+<div class="stage" id="stage-media">
+  <div class="sh">
+    <div class="sh-bc">素材管理 &rsaquo; メディアライブラリ</div>
+    <div class="sh-ti">アップロード素材・生成クリップ</div>
+    <div class="sh-su">動画・画像・音楽をドラッグ&amp;ドロップ。タイムラインへの追加・プレビューが可能。</div>
+  </div>
+  <div class="sb">
+    <!-- ドロップゾーン -->
+    <div id="media-drop" style="
+      border:2px dashed var(--ln2);border-radius:10px;padding:28px;text-align:center;
+      margin-bottom:14px;cursor:pointer;transition:border-color .2s;background:var(--s2);
+    " onclick="document.getElementById('media-file-input').click()"
+       ondragover="event.preventDefault();this.style.borderColor='var(--acc)'"
+       ondragleave="this.style.borderColor='var(--ln2)'"
+       ondrop="handleMediaDrop(event)">
+      <div style="font-size:32px;margin-bottom:8px;">&#128190;</div>
+      <div style="font-family:var(--mon);font-size:12px;color:var(--c2);">ファイルをドロップ、またはクリックして選択</div>
+      <div style="font-family:var(--mon);font-size:10px;color:var(--c3);margin-top:4px;">mp4 / mov / avi / png / jpg / mp3 / wav 対応</div>
+    </div>
+    <input type="file" id="media-file-input" multiple accept="video/*,image/*,audio/*" style="display:none" onchange="handleMediaFiles(this.files)">
+
+    <!-- フィルタータブ -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+      <button class="btn btn-g media-filter active" data-cat="all" onclick="filterMedia('all',this)">すべて</button>
+      <button class="btn btn-g media-filter" data-cat="video" onclick="filterMedia('video',this)">&#127902; 動画</button>
+      <button class="btn btn-g media-filter" data-cat="image" onclick="filterMedia('image',this)">&#128247; 画像</button>
+      <button class="btn btn-g media-filter" data-cat="audio" onclick="filterMedia('audio',this)">&#127925; 音楽</button>
+      <button class="btn btn-g media-filter" data-cat="gen" onclick="filterMedia('gen',this)">&#9889; AI生成</button>
+      <button class="btn btn-g" style="margin-left:auto;" onclick="syncDrive()">&#9729; Drive同期</button>
+    </div>
+
+    <!-- グリッド -->
+    <div id="media-grid" style="
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;
+      max-height:calc(100vh - 320px);overflow-y:auto;padding-right:4px;
+    ">
+      <div id="media-empty" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--c3);font-family:var(--mon);font-size:11px;">
+        素材がありません。ファイルをドロップして追加してください。
+      </div>
+    </div>
+
+    <!-- ステータス -->
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px;font-family:var(--mon);font-size:10px;color:var(--c3);">
+      <span id="media-count">0件</span>
+      <span>|</span>
+      <span id="media-size">0 MB</span>
+      <button class="btn btn-g" style="margin-left:auto;padding:2px 8px;font-size:10px;" onclick="clearMedia()">すべて削除</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ S1: 設定 ══ -->
 <div class="stage active" id="stage-s1">
@@ -732,6 +818,22 @@ body.beginner-mode .pro-only{display:none;}
         </div>
         <div id="out-mt" class="aio empty" style="min-height:50px;">---</div>
       </div>
+      <!-- ═ 冒頭3秒フック文（Instagram/TikTok必須） ═ -->
+      <div class="col" style="margin-top:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <label class="lbl" style="margin:0;">&#128293; 冒頭3秒フック文 <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">Instagram/TikTok視聴維持率↑</span></label>
+          <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-hook')">コピー</button>
+        </div>
+        <div id="out-hook" class="aio empty" style="min-height:60px;border-left:2px solid var(--red);">---</div>
+      </div>
+      <!-- ═ YouTube SEO ═ -->
+      <div class="col" style="margin-top:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <label class="lbl" style="margin:0;">&#128269; YouTube SEO <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">タイトル / 説明文 / タグ</span></label>
+          <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-seo')">コピー</button>
+        </div>
+        <div id="out-seo" class="aio empty" style="min-height:80px;border-left:2px solid var(--yel);">---</div>
+      </div>
     </div>
     <div class="brow">
       <button class="btn btn-p" id="btn-s3" onclick="gs('s3');markDone('s2')">次へ：動画生成 &rarr;</button>
@@ -801,7 +903,7 @@ body.beginner-mode .pro-only{display:none;}
           <textarea id="s4-nar" rows="5" placeholder="Step 2で生成した原稿をここに貼り付け..."></textarea></div>
         <div class="r2">
           <div class="col"><label class="lbl">話者</label>
-            <select><option>VOICEVOX Nemo（ビジネス）</option><option>四国めたん</option><option>ずんだもん</option></select></div>
+            <select id="vv-speaker"><option value="88">VOICEVOX Nemo（ビジネス）</option><option value="2">四国めたん</option><option value="1">ずんだもん</option><option value="3">ずんだもん（囁き）</option><option value="10">春日部つむぎ</option></select></div>
           <div class="col"><label class="lbl">スタイル</label>
             <select><option>ノーマル</option><option>優しい</option><option>丁寧</option></select></div>
         </div>
@@ -855,6 +957,291 @@ body.beginner-mode .pro-only{display:none;}
   </div>
   <div class="sb">
     <div class="beginner-hint">出力したい動画のサイズ、長さ、品質を設定します。設定するとFFmpegコマンド（動画変換の命令）が自動で作られます。それをコピーしてPowerShellで実行します。</div>
+
+    <!-- ═ VISUAL TIMELINE ═ -->
+    <div class="card" style="margin-bottom:10px;">
+      <div class="cl" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>&#9654; ビジュアルタイムライン <span style="font-family:var(--mon);font-size:9px;color:var(--c3);font-weight:400;">（DaVinci Resolve スタイル）</span></span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="addClipToTimeline()">+ クリップ追加</button>
+          <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="clearTimeline()">クリア</button>
+        </div>
+      </div>
+      <!-- トランジション・エフェクト選択 -->
+      <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+        <span style="font-family:var(--mon);font-size:9px;color:var(--c3);padding-top:4px;">トランジション:</span>
+        <button class="btn btn-g tl-trans active-trans" data-tr="cut" onclick="setTrans('cut',this)">ダイレクトカット</button>
+        <button class="btn btn-g tl-trans" data-tr="fade" onclick="setTrans('fade',this)">フェード</button>
+        <button class="btn btn-g tl-trans" data-tr="wipe" onclick="setTrans('wipe',this)">ワイプ</button>
+        <button class="btn btn-g tl-trans" data-tr="zoom" onclick="setTrans('zoom',this)">ズームイン</button>
+        <button class="btn btn-g tl-trans" data-tr="slide" onclick="setTrans('slide',this)">スライド</button>
+      </div>
+      <!-- タイムラインルーラー -->
+      <div id="tl-ruler" style="height:18px;background:var(--s3);border-radius:4px 4px 0 0;border:1px solid var(--ln);border-bottom:none;position:relative;overflow:hidden;">
+        <canvas id="tl-ruler-canvas" style="width:100%;height:100%;"></canvas>
+      </div>
+      <!-- クリップトラック -->
+      <div id="timeline-track" style="
+        min-height:72px;background:var(--s3);border:1px solid var(--ln);border-radius:0 0 4px 4px;
+        padding:8px;display:flex;gap:4px;overflow-x:auto;align-items:center;position:relative;
+      " ondragover="event.preventDefault()" ondrop="dropClipToTimeline(event)">
+        <div id="tl-empty-hint" style="font-family:var(--mon);font-size:10px;color:var(--c3);width:100%;text-align:center;pointer-events:none;">
+          クリップをここにドラッグ、または「+ クリップ追加」でメディアライブラリから選択
+        </div>
+      </div>
+      <!-- タイムライン情報 -->
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-family:var(--mon);font-size:9px;color:var(--c3);">
+        <span>クリップ数: <span id="tl-clip-count">0</span></span>
+        <span>総尺: <span id="tl-total-dur">0.0s</span></span>
+        <span>トランジション: <span id="tl-trans-label">ダイレクトカット</span></span>
+      </div>
+    </div>
+
+    <!-- ═ COLOR GRADING ═ -->
+    <div class="card" style="margin-bottom:10px;">
+      <div class="cl">&#127775; カラーグレーディング <span style="font-family:var(--mon);font-size:9px;color:var(--c3);font-weight:400;">（DaVinci Resolve LUTスタイル）</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+        <div class="lut-chip active-lut" data-lut="none" onclick="applyLut('none',this)" style="
+          width:70px;height:50px;border-radius:6px;background:linear-gradient(135deg,#1a1a2e,#555);
+          cursor:pointer;border:2px solid var(--acc);display:flex;align-items:flex-end;padding:4px;
+          font-family:var(--mon);font-size:8px;color:var(--c3);transition:border-color .2s;
+        ">オリジナル</div>
+        <div class="lut-chip" data-lut="cinema" onclick="applyLut('cinema',this)" style="
+          width:70px;height:50px;border-radius:6px;background:linear-gradient(135deg,#0a1628,#4a2010);
+          cursor:pointer;border:2px solid var(--ln);display:flex;align-items:flex-end;padding:4px;
+          font-family:var(--mon);font-size:8px;color:#c8a07e;transition:border-color .2s;
+        ">映画的</div>
+        <div class="lut-chip" data-lut="vivid" onclick="applyLut('vivid',this)" style="
+          width:70px;height:50px;border-radius:6px;background:linear-gradient(135deg,#001a40,#ff6600);
+          cursor:pointer;border:2px solid var(--ln);display:flex;align-items:flex-end;padding:4px;
+          font-family:var(--mon);font-size:8px;color:#fff;transition:border-color .2s;
+        ">ビビッド</div>
+        <div class="lut-chip" data-lut="bw" onclick="applyLut('bw',this)" style="
+          width:70px;height:50px;border-radius:6px;background:linear-gradient(135deg,#111,#999);
+          cursor:pointer;border:2px solid var(--ln);display:flex;align-items:flex-end;padding:4px;
+          font-family:var(--mon);font-size:8px;color:#888;transition:border-color .2s;
+        ">白黒</div>
+        <div class="lut-chip" data-lut="warm" onclick="applyLut('warm',this)" style="
+          width:70px;height:50px;border-radius:6px;background:linear-gradient(135deg,#2a1500,#ff9933);
+          cursor:pointer;border:2px solid var(--ln);display:flex;align-items:flex-end;padding:4px;
+          font-family:var(--mon);font-size:8px;color:#ffcc88;transition:border-color .2s;
+        ">ウォーム</div>
+        <div class="lut-chip" data-lut="cool" onclick="applyLut('cool',this)" style="
+          width:70px;height:50px;border-radius:6px;background:linear-gradient(135deg,#001428,#00aaff);
+          cursor:pointer;border:2px solid var(--ln);display:flex;align-items:flex-end;padding:4px;
+          font-family:var(--mon);font-size:8px;color:#88ddff;transition:border-color .2s;
+        ">クール</div>
+        <div class="lut-chip" data-lut="fade" onclick="applyLut('fade',this)" style="
+          width:70px;height:50px;border-radius:6px;background:linear-gradient(135deg,#1e2028,#787878);
+          cursor:pointer;border:2px solid var(--ln);display:flex;align-items:flex-end;padding:4px;
+          font-family:var(--mon);font-size:8px;color:#aaa;transition:border-color .2s;
+        ">フェード</div>
+        <div class="lut-chip" data-lut="golden" onclick="applyLut('golden',this)" style="
+          width:70px;height:50px;border-radius:6px;background:linear-gradient(135deg,#1a0a00,#d4a000);
+          cursor:pointer;border:2px solid var(--ln);display:flex;align-items:flex-end;padding:4px;
+          font-family:var(--mon);font-size:8px;color:#ffd700;transition:border-color .2s;
+        ">ゴールデン</div>
+      </div>
+      <!-- LUT FFmpegコマンド表示 -->
+      <div id="lut-cmd-row" style="display:none;">
+        <div style="font-family:var(--mon);font-size:9px;color:var(--c3);margin-bottom:4px;">FFmpegフィルター:</div>
+        <div class="cb" id="lut-cmd" style="font-size:10px;"></div>
+        <button class="btn btn-g" style="margin-top:6px;padding:2px 8px;font-size:10px;" onclick="cpEl('lut-cmd')">コピー</button>
+      </div>
+    </div>
+
+    <!-- ═ TEXT OVERLAY EDITOR ═ -->
+    <div class="card" style="margin-bottom:10px;">
+      <div class="cl">&#9997; テキストオーバーレイ <span style="font-family:var(--mon);font-size:9px;color:var(--c3);font-weight:400;">（字幕・タイトル・ロゴ）</span></div>
+      <div class="r2" style="margin-bottom:8px;">
+        <div class="col">
+          <label class="lbl">テキスト</label>
+          <input type="text" id="ovl-text" placeholder="テキストを入力..." oninput="genOvlCmd()">
+        </div>
+        <div class="col">
+          <label class="lbl">フォントサイズ</label>
+          <input type="number" id="ovl-size" value="48" min="12" max="200" oninput="genOvlCmd()">
+        </div>
+      </div>
+      <div class="r2" style="margin-bottom:8px;">
+        <div class="col">
+          <label class="lbl">位置</label>
+          <select id="ovl-pos" onchange="genOvlCmd()">
+            <option value="center">中央</option>
+            <option value="top">上部</option>
+            <option value="bottom" selected>下部（字幕）</option>
+            <option value="topleft">左上</option>
+            <option value="topright">右上</option>
+          </select>
+        </div>
+        <div class="col">
+          <label class="lbl">スタイル</label>
+          <select id="ovl-style" onchange="genOvlCmd()">
+            <option value="white">白文字</option>
+            <option value="black">黒文字</option>
+            <option value="yellow">黄色（字幕）</option>
+            <option value="shadow">影付き白</option>
+            <option value="box">ボックス背景</option>
+          </select>
+        </div>
+      </div>
+      <!-- アニメーションプリセット -->
+      <div style="margin-bottom:8px;">
+        <label class="lbl">アニメーション</label>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <button class="btn btn-g anim-chip" onclick="applyAnim('none',this)">なし</button>
+          <button class="btn btn-g anim-chip" onclick="applyAnim('fadein',this)">フェードイン</button>
+          <button class="btn btn-g anim-chip" onclick="applyAnim('slideup',this)">スライドアップ</button>
+          <button class="btn btn-g anim-chip" onclick="applyAnim('typewriter',this)">タイプライター</button>
+          <button class="btn btn-g anim-chip" onclick="applyAnim('zoom',this)">ズームイン</button>
+          <button class="btn btn-g anim-chip" onclick="applyAnim('bounce',this)">バウンス</button>
+        </div>
+      </div>
+      <div id="ovl-cmd-row" style="display:none;">
+        <div style="font-family:var(--mon);font-size:9px;color:var(--c3);margin-bottom:4px;">FFmpegコマンド:</div>
+        <div class="cb" id="ovl-cmd" style="font-size:10px;"></div>
+        <button class="btn btn-g" style="margin-top:6px;padding:2px 8px;font-size:10px;" onclick="cpEl('ovl-cmd')">コピー</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         🧹 LOGO / WATERMARK REMOVER
+         無料ツール: FFmpeg delogo / blur / IOPaint(AI)
+         ═══════════════════════════════════════════════════ -->
+    <div class="card" style="margin-bottom:10px;">
+      <div class="cl" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+        <span>🧹 ロゴ・透かし除去 <span style="font-family:var(--mon);font-size:9px;color:var(--c3);font-weight:400;">無料: FFmpeg delogo / IOPaint AI</span></span>
+        <div style="display:flex;gap:5px;">
+          <button class="lr-mode-btn active" id="lr-m-delogo"  onclick="setLrMode('delogo',this)" title="周辺ピクセルでAI補完（推奨）">delogo</button>
+          <button class="lr-mode-btn"        id="lr-m-blur"    onclick="setLrMode('blur',this)"   title="ぼかし処理">blur</button>
+          <button class="lr-mode-btn"        id="lr-m-black"   onclick="setLrMode('black',this)"  title="黒塗り潰し">blackout</button>
+          <button class="lr-mode-btn"        id="lr-m-iopaint" onclick="setLrMode('iopaint',this)" title="IOPaint AI Inpainting（高精度）" style="border-color:var(--grn);color:var(--grn);">IOPaint AI★</button>
+        </div>
+      </div>
+
+      <!-- 動画ドロップ + Canvasプレビュー -->
+      <div id="lr-canvas-wrap"
+           ondragover="event.preventDefault();this.style.borderColor='var(--acc)'"
+           ondragleave="this.style.borderColor='var(--ln)'"
+           ondrop="lrDropVideo(event)"
+           onmousedown="lrStartDrag(event)"
+           onmousemove="lrDrag(event)"
+           onmouseup="lrEndDrag(event)"
+           style="margin-bottom:8px;min-height:120px;">
+        <canvas id="lr-canvas" height="240"></canvas>
+        <div id="lr-sel-box"></div>
+        <div id="lr-preview-lbl">動画または画像をここにドロップ（またはクリックして選択）<br><span style="font-size:8px;">ドロップ後にマウスでドラッグして除去エリアを選択</span></div>
+      </div>
+      <input type="file" id="lr-file-in" accept="video/*,image/*" style="display:none" onchange="lrLoadFile(this.files[0])">
+      <div style="text-align:center;margin-bottom:8px;">
+        <button class="btn btn-g" style="font-size:10px;" onclick="document.getElementById('lr-file-in').click()">📁 ファイルを選択</button>
+      </div>
+
+      <!-- 座標入力（手動入力 or Canvas連動） -->
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+        <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">除去エリア:</span>
+        <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">X</span>
+        <input type="number" id="lr-x" class="lr-coord" value="0"   min="0" oninput="lrManualCoord()">
+        <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">Y</span>
+        <input type="number" id="lr-y" class="lr-coord" value="0"   min="0" oninput="lrManualCoord()">
+        <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">W</span>
+        <input type="number" id="lr-w" class="lr-coord" value="200" min="1" oninput="lrManualCoord()">
+        <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">H</span>
+        <input type="number" id="lr-h" class="lr-coord" value="80"  min="1" oninput="lrManualCoord()">
+        <button class="btn btn-g" style="font-size:10px;padding:2px 8px;" onclick="lrPresetSora()">Sora透かし位置</button>
+        <button class="btn btn-g" style="font-size:10px;padding:2px 8px;" onclick="lrPresetTopRight()">右上汎用</button>
+      </div>
+
+      <!-- 入力ファイルパス -->
+      <div class="r2" style="margin-bottom:8px;">
+        <div class="col">
+          <label class="lbl">入力ファイルパス</label>
+          <input type="text" id="lr-input-path" placeholder="例: C:\VideoProduction\input.mp4" oninput="genLrCmd()">
+        </div>
+        <div class="col">
+          <label class="lbl">出力ファイルパス</label>
+          <input type="text" id="lr-output-path" placeholder="例: C:\VideoProduction\removed.mp4" oninput="genLrCmd()">
+        </div>
+      </div>
+
+      <!-- 生成コマンド表示 -->
+      <div id="lr-cmd-area">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div style="font-family:var(--mon);font-size:9px;color:var(--c3);" id="lr-cmd-lbl">FFmpegコマンド (delogo):</div>
+          <button class="btn btn-g" style="padding:2px 8px;font-size:10px;" onclick="cpEl('lr-cmd')">コピー</button>
+        </div>
+        <div class="cb" id="lr-cmd" style="font-size:10px;white-space:pre-wrap;min-height:36px;">座標を設定するとコマンドが生成されます</div>
+      </div>
+
+      <!-- IOPaint セットアップガイド -->
+      <div id="lr-iopaint-guide" style="display:none;margin-top:10px;border:1px solid var(--grn);border-radius:6px;padding:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <div style="font-family:var(--mon);font-size:9px;color:var(--grn);">★ IOPaint — 無料AIインペインティング（最高精度）</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span id="iop-status-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#555;"></span>
+            <span id="iop-status-lbl" style="font-family:var(--mon);font-size:9px;color:var(--c3);">未接続</span>
+            <button class="btn btn-g" style="font-size:10px;padding:2px 8px;" onclick="checkIoPaint()">接続テスト</button>
+          </div>
+        </div>
+
+        <!-- モデル選択 -->
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+          <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">モデル:</span>
+          <label style="font-family:var(--mon);font-size:9px;cursor:pointer;"><input type="radio" name="iop-model" value="lama" checked onchange="updateIopCmd()"> LaMa (高速・軽量)</label>
+          <label style="font-family:var(--mon);font-size:9px;cursor:pointer;"><input type="radio" name="iop-model" value="sd1.5" onchange="updateIopCmd()"> SD 1.5 (高精度・要GPU)</label>
+          <label style="font-family:var(--mon);font-size:9px;cursor:pointer;"><input type="radio" name="iop-model" value="sdxl" onchange="updateIopCmd()"> SDXL (最高精度)</label>
+          <span style="font-family:var(--mon);font-size:9px;color:var(--c3);margin-left:6px;">デバイス:</span>
+          <label style="font-family:var(--mon);font-size:9px;cursor:pointer;"><input type="radio" name="iop-dev" value="cpu" checked onchange="updateIopCmd()"> CPU</label>
+          <label style="font-family:var(--mon);font-size:9px;cursor:pointer;"><input type="radio" name="iop-dev" value="cuda" onchange="updateIopCmd()"> GPU (CUDA)</label>
+        </div>
+
+        <!-- セットアップコマンド -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+          <div>
+            <div style="font-family:var(--mon);font-size:9px;color:var(--c3);margin-bottom:2px;">① インストール (Python 3.10+必須):</div>
+            <div style="display:flex;gap:4px;">
+              <div class="cb" id="lr-iop-install" style="font-size:10px;flex:1;">pip install iopaint</div>
+              <button class="btn btn-g" style="font-size:10px;padding:2px 6px;white-space:nowrap;" onclick="cpEl('lr-iop-install')">コピー</button>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:var(--mon);font-size:9px;color:var(--c3);margin-bottom:2px;">② 起動:</div>
+            <div style="display:flex;gap:4px;">
+              <div class="cb" id="lr-iop-run" style="font-size:10px;flex:1;">iopaint start --model=lama --device=cpu --port=8081</div>
+              <button class="btn btn-g" style="font-size:10px;padding:2px 6px;white-space:nowrap;" onclick="cpEl('lr-iop-run')">コピー</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AIアクションボタン -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          <button class="btn" style="font-size:11px;background:var(--grn);color:#000;font-weight:700;" onclick="iopaintPreview()">🤖 AI除去プレビュー（現在フレーム）</button>
+          <button class="btn btn-g" style="font-size:10px;" onclick="iopaintBatchScript()">📋 バッチ処理スクリプト生成</button>
+          <button class="btn btn-g" style="font-size:10px;" onclick="window.open('http://localhost:8081','_blank')">🌐 IOPaint UIを開く</button>
+        </div>
+
+        <!-- プレビュー結果 -->
+        <div id="iop-preview-area" style="display:none;margin-bottom:8px;">
+          <div style="font-family:var(--mon);font-size:9px;color:var(--grn);margin-bottom:4px;">AI除去結果プレビュー:</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div>
+              <div style="font-family:var(--mon);font-size:9px;color:var(--c3);margin-bottom:2px;">Before</div>
+              <canvas id="iop-before-canvas" style="width:100%;border:1px solid var(--ln);border-radius:4px;"></canvas>
+            </div>
+            <div>
+              <div style="font-family:var(--mon);font-size:9px;color:var(--c3);margin-bottom:2px;">After (IOPaint AI)</div>
+              <canvas id="iop-after-canvas" style="width:100%;border:1px solid var(--grn);border-radius:4px;"></canvas>
+            </div>
+          </div>
+          <div style="text-align:right;margin-top:4px;">
+            <button class="btn btn-g" style="font-size:10px;" onclick="iopaintApplyToMain()">✅ メインキャンバスに適用</button>
+          </div>
+        </div>
+
+        <!-- 処理ステータス -->
+        <div id="iop-proc-status" style="font-family:var(--mon);font-size:9px;color:var(--c3);display:none;"></div>
+      </div>
+    </div>
 
     <!-- TWO-COLUMN LAYOUT -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
@@ -1162,6 +1549,74 @@ body.beginner-mode .pro-only{display:none;}
       <div class="alert a-info" style="margin-bottom:10px;">DaVinci Resolve（無料版）でカラーグレーディング・ロゴオーバーレイ・細かい編集を行うと品質が大幅向上します。</div>
       <button class="btn btn-g" onclick="window.open('https://www.blackmagicdesign.com/products/davinciresolve','_blank')">DaVinci Resolve をダウンロード（無料）</button>
     </div>
+    <!-- ═ CHAPTER MARKER GENERATOR ═ -->
+    <div class="card" style="margin-bottom:10px;">
+      <div class="cl">&#128203; チャプターマーカー生成 <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">YouTube概要欄用</span></div>
+      <div id="chapter-rows" style="margin-bottom:8px;">
+        <div class="chapter-row" style="display:flex;gap:6px;margin-bottom:4px;">
+          <input type="text" placeholder="00:00" style="width:60px;font-family:var(--mon);font-size:11px;" class="chap-time" oninput="genChapters()">
+          <input type="text" placeholder="イントロ" style="flex:1;" class="chap-title" oninput="genChapters()">
+          <button class="btn btn-g" style="padding:1px 6px;font-size:10px;" onclick="addChapterRow()">+</button>
+        </div>
+      </div>
+      <button class="btn btn-g" style="margin-bottom:8px;font-size:10px;" onclick="addChapterRow()">+ チャプター追加</button>
+      <div id="chap-out" style="display:none;">
+        <div style="font-family:var(--mon);font-size:9px;color:var(--c3);margin-bottom:4px;">コピーして YouTube 説明欄に貼り付け:</div>
+        <div class="cb" id="chap-txt" style="font-size:10px;white-space:pre;"></div>
+        <button class="btn btn-g" style="margin-top:6px;padding:2px 8px;font-size:10px;" onclick="cpEl('chap-txt')">コピー</button>
+      </div>
+    </div>
+
+    <!-- ═ THUMBNAIL GENERATOR ═ -->
+    <div class="card" style="margin-bottom:10px;">
+      <div class="cl">&#127777; サムネイルジェネレーター <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">1280×720 / Canvas生成</span></div>
+      <div class="r2" style="margin-bottom:8px;">
+        <div class="col">
+          <label class="lbl">メインテキスト</label>
+          <input type="text" id="tn-main" placeholder="【衝撃】薄毛が3ヶ月で..." oninput="genThumbnail()" maxlength="20">
+        </div>
+        <div class="col">
+          <label class="lbl">サブテキスト</label>
+          <input type="text" id="tn-sub" placeholder="SMP施術の全て" oninput="genThumbnail()" maxlength="30">
+        </div>
+      </div>
+      <div class="r2" style="margin-bottom:8px;">
+        <div class="col">
+          <label class="lbl">背景スタイル</label>
+          <select id="tn-bg" onchange="genThumbnail()">
+            <option value="dark">ダークネオン</option>
+            <option value="gradient">グラデーション</option>
+            <option value="split">左右スプリット</option>
+            <option value="cinematic">シネマティック</option>
+            <option value="minimal">ミニマル白</option>
+          </select>
+        </div>
+        <div class="col">
+          <label class="lbl">強調色</label>
+          <select id="tn-color" onchange="genThumbnail()">
+            <option value="#00c8ff">シアン（デフォルト）</option>
+            <option value="#ff4455">レッド</option>
+            <option value="#ffb300">ゴールド</option>
+            <option value="#00d97e">グリーン</option>
+            <option value="#7857ff">パープル</option>
+          </select>
+        </div>
+      </div>
+      <canvas id="tn-canvas" width="1280" height="720" style="width:100%;border-radius:6px;border:1px solid var(--ln);margin-bottom:8px;background:#06080e;"></canvas>
+      <div class="brow">
+        <button class="btn btn-p" onclick="genThumbnail()">&#8635; 再生成</button>
+        <button class="btn btn-g" onclick="downloadThumbnail()">&#8595; PNG ダウンロード</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cl">&#9729; Google Drive 素材保管</div>
+      <div style="font-family:var(--mon);font-size:11px;color:var(--c2);line-height:1.9;margin-bottom:10px;">
+        生成動画・アップロード素材（画像/音楽/動画）の共有ストレージ。<br>
+        納品ファイルはここに保存して管理してください。
+      </div>
+      <button class="btn btn-g" onclick="window.open('https://drive.google.com/drive/folders/1qAUKiSQNy-Wqw_F9QmL7vMXXvbK0OHgd?usp=drive_link','_blank')">Drive を開く</button>
+    </div>
     <div class="brow">
       <button class="btn btn-grn" onclick="completePipeline()">完了 --- 新しい動画を作成</button>
     </div>
@@ -1220,7 +1675,7 @@ Write-Host "Setup complete: ffmpeg, node, claude, python"</div>
     <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton"></div>Veo 3.1</div><span class="tv">50c/月</span></div>
     <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton"></div>Kling AI</div><span class="tv">66c/日</span></div>
     <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton"></div>GPT Image</div><span class="tv">50枚/3h</span></div>
-    <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton"></div>VOICEVOX</div><span class="tv">無制限</span></div>
+    <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton" id="vv-dot"></div>VOICEVOX</div><span class="tv" id="rp-vv">ローカル</span></div>
     <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td" id="api-dot"></div>Claude API</div><span class="tv" id="rp-api">未設定</span></div>
   </div>
   <div>
@@ -1242,49 +1697,21 @@ Write-Host "Setup complete: ffmpeg, node, claude, python"</div>
       <div style="font-family:var(--mon);font-size:9px;color:var(--c3);padding:4px;">エラーはありません</div>
     </div>
   </div>
-  <!-- v4: Tester Scorecard -->
-  <div>
-    <div class="rpl">テスター評価 (v3 &rarr; v4)</div>
-    <div class="tester-card">
-      <div class="tc-name">トモコ（SNS担当）</div><div class="tc-role">28歳・マーケター</div>
-      <div class="tc-score-row"><div class="tc-bar"><div class="tc-bar-fill" style="width:72%;background:var(--acc);"></div></div><span class="tc-score-val" style="color:var(--acc);">72%</span></div>
-      <div class="tc-issues"><span class="tc-fixed">v4修正済:</span> APIキー設定UI、ショートカット、Threads/Pinterest対応</div>
-    </div>
-    <div class="tester-card">
-      <div class="tc-name">ケンジ（SEエンジニア）</div><div class="tc-role">35歳・バックエンド</div>
-      <div class="tc-score-row"><div class="tc-bar"><div class="tc-bar-fill" style="width:65%;background:var(--yel);"></div></div><span class="tc-score-val" style="color:var(--yel);">65%</span></div>
-      <div class="tc-issues"><span class="tc-fixed">v4修正済:</span> CORS対策、バグ修正10件、エラーログ、toast通知</div>
-    </div>
-    <div class="tester-card">
-      <div class="tc-name">リョウタ（動画編集者）</div><div class="tc-role">25歳・フリーランス</div>
-      <div class="tc-score-row"><div class="tc-bar"><div class="tc-bar-fill" style="width:81%;background:var(--grn);"></div></div><span class="tc-score-val" style="color:var(--grn);">81%</span></div>
-      <div class="tc-issues"><span class="tc-fixed">v4修正済:</span> ProRes対応、バッチコマンド修正、PS対応</div>
-    </div>
-    <div class="tester-card">
-      <div class="tc-name">ハナ（YouTuber）</div><div class="tc-role">32歳・クリエイター</div>
-      <div class="tc-score-row"><div class="tc-bar"><div class="tc-bar-fill" style="width:76%;background:var(--acc);"></div></div><span class="tc-score-val" style="color:var(--acc);">76%</span></div>
-      <div class="tc-issues"><span class="tc-fixed">v4修正済:</span> サイレント失敗解消、toast通知、Shorts対応</div>
-    </div>
-    <div class="tester-card">
-      <div class="tc-name">ヨシコ（素人）</div><div class="tc-role">45歳・主婦</div>
-      <div class="tc-score-row"><div class="tc-bar"><div class="tc-bar-fill" style="width:68%;background:var(--yel);"></div></div><span class="tc-score-val" style="color:var(--yel);">68%</span></div>
-      <div class="tc-issues"><span class="tc-fixed">v4修正済:</span> ツールチップ、ビギナーモード、用語説明</div>
-    </div>
-  </div>
   <div>
     <div class="rpl">クイックアクセス</div>
     <button class="qab" onclick="window.open('https://sora.com','_blank')">Sora</button>
     <button class="qab" onclick="window.open('https://vids.google.com','_blank')">Google Vids</button>
     <button class="qab" onclick="window.open('https://klingai.com','_blank')">Kling AI</button>
     <button class="qab" onclick="window.open('https://claude.ai','_blank')">Claude Max</button>
-    <button class="qab" onclick="window.open('https://voicevox.hiroshiba.jp/','_blank')">VOICEVOX</button>
+    <button class="qab" id="vv-btn" onclick="openVV()">VOICEVOX</button>
+    <button class="qab" style="background:var(--grn);opacity:0.85;" onclick="window.open('https://drive.google.com/drive/folders/1qAUKiSQNy-Wqw_F9QmL7vMXXvbK0OHgd?usp=drive_link','_blank')">&#9729; Drive素材</button>
   </div>
 </aside>
 </div>
 
 <script>
 /* ════════════════════════════════════════════════════════════════
-   VIDEO PIPELINE v4 — V-Genesis System
+   V-Genesis v5 — AI動画制作システム
    All v3 bugs fixed. See inline comments for each fix.
    ════════════════════════════════════════════════════════════════ */
 
@@ -1349,19 +1776,26 @@ function renderErrorLog() {
 // API KEY MANAGEMENT (v4 new — fix #1, #2, #12, #17)
 // ════════════════════════════════════════
 function getApiKey() {
-  return localStorage.getItem('vp4_api_key') || '';
+  // 優先順位: localStorage → serve.js ENV注入
+  return localStorage.getItem('vp4_api_key') ||
+         (window.__VP4_ENV && window.__VP4_ENV.apiKey) || '';
 }
 function getProxyUrl() {
-  return localStorage.getItem('vp4_proxy_url') || '';
+  return localStorage.getItem('vp4_proxy_url') ||
+         (window.__VP4_ENV && window.__VP4_ENV.proxyUrl) || '';
 }
 function saveApiKey() {
-  var key = document.getElementById('api-key-input').value.trim();
+  var key   = document.getElementById('api-key-input').value.trim();
   var proxy = document.getElementById('proxy-url-input').value.trim();
+  // キーが入力された場合のみ上書き（空欄=既存キーを維持）
   if (key) localStorage.setItem('vp4_api_key', key);
   if (proxy) localStorage.setItem('vp4_proxy_url', proxy);
+  // 保存後はフィールドをクリアしてキーを画面に残さない
+  document.getElementById('api-key-input').value = '';
   closeModal('modal-api');
   updateApiStatus();
   if (key) toast('APIキーを保存しました', 'success');
+  else if (getApiKey()) toast('APIキーは変更されませんでした', 'info');
   else toast('プリセットモードで動作します', 'info');
 }
 function updateApiStatus() {
@@ -1503,6 +1937,39 @@ function onCfg() {
 // ════════════════════════════════════════
 // AI GENERATION (v4: fix #1 API key, #2 CORS, error handling)
 // ════════════════════════════════════════
+// ── Claude API リトライラッパー ──────────────────────────────────
+async function claudeApiCall(payload, maxRetries) {
+  maxRetries = maxRetries || 3;
+  var proxy = getProxyUrl() || 'http://localhost:3001/v1/messages';
+  var key   = getApiKey();
+  if (!key) throw new Error('APIキー未設定');
+  var lastErr;
+  for (var attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      var resp = await fetch(proxy, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'x-api-key':key, 'anthropic-version':'2023-06-01' },
+        body: JSON.stringify(payload)
+      });
+      if (resp.status === 429) {
+        var wait = Math.pow(2, attempt) * 1000 + Math.random()*500;
+        toast('レートリミット。' + (wait/1000).toFixed(1) + '秒後にリトライ (' + attempt + '/' + maxRetries + ')', 'warning', wait);
+        await new Promise(function(r){ setTimeout(r, wait); });
+        lastErr = new Error('429 Rate limit');
+        continue;
+      }
+      if (!resp.ok) throw new Error('API error ' + resp.status);
+      return await resp.json();
+    } catch(e) {
+      lastErr = e;
+      if (attempt < maxRetries && e.message.indexOf('429') < 0) {
+        await new Promise(function(r){ setTimeout(r, 1000 * attempt); });
+      }
+    }
+  }
+  throw lastErr || new Error('API呼び出し失敗');
+}
+
 function genAll() {
   var apiKey = getApiKey();
   var proxyUrl = getProxyUrl();
@@ -1528,7 +1995,7 @@ function genAll() {
 
   var b = brands[S.brand];
   var toneMap = { trust: '信頼感・専門性', emotional: '感動・共感', luxury: '高級・洗練', energetic: '活力・変身' };
-  var sys = 'あなたはブランド「' + b.name + '」の動画制作AIです。ターゲット：' + b.tgt + '。トーン：' + toneMap[S.tone] + '。\n必ず以下の形式で：\n【動画プロンプト】\n（英語、200語以内、cinematic/photorealistic）\n【ナレーション原稿】\n（日本語、' + S.dur + '秒テンポ）\n【テキストオーバーレイ】\n（5語以内×3枚、改行区切り）\n【BGM・シーン構成メモ】\n（3行以内）';
+  var sys = 'あなたはブランド「' + b.name + '」の動画制作AIです。ターゲット：' + b.tgt + '。トーン：' + toneMap[S.tone] + '。\n必ず以下の形式で：\n【動画プロンプト】\n（英語、200語以内、cinematic/photorealistic）\n【ナレーション原稿】\n（日本語、' + S.dur + '秒テンポ）\n【テキストオーバーレイ】\n（5語以内×3枚、改行区切り）\n【BGM・シーン構成メモ】\n（3行以内）\n【冒頭3秒フック文】\n（視聴者を瞬時に引き込む短いキャッチコピー、20文字以内×3パターン）\n【SEOタイトル】\n（YouTubeタイトル60文字以内、検索キーワード含む）\n【SEO説明文】\n（YouTube説明文300文字、最初の2行が重要）\n【SEOタグ】\n（タグ10個カンマ区切り）';
   var user = '用途：' + S.purpose + ' / シーン：' + S.scene + ' / 追加KW：' + (S.kw || 'なし');
 
   // v4 fix #2: Use proxy URL if set, include API key header
@@ -1566,10 +2033,23 @@ function genAll() {
     S.genN = exSec(text, 'ナレーション原稿');
     S.genO = exSec(text, 'テキストオーバーレイ');
     S.genM = exSec(text, 'BGM・シーン構成メモ');
+    var genHook = exSec(text, '冒頭3秒フック文');
+    var genSeoTitle = exSec(text, 'SEOタイトル');
+    var genSeoDesc  = exSec(text, 'SEO説明文');
+    var genSeoTags  = exSec(text, 'SEOタグ');
     setAIO('out-vp', false, S.genP || '（再試行してください）');
     setAIO('out-nr', false, S.genN || '---');
     setAIO('out-ov', false, S.genO || '---');
-    setAIO('out-mt', false, S.genM || '---');
+    setAIO('out-mt',   false, S.genM || '---');
+    setAIO('out-hook', false, genHook || '（生成されませんでした）');
+    setAIO('out-seo',  false, [
+      'タイトル: ' + (genSeoTitle || '---'),
+      '',
+      '説明文:',
+      genSeoDesc || '---',
+      '',
+      'タグ: ' + (genSeoTags || '---')
+    ].join('\n'));
     document.getElementById('btn-s3').disabled = false;
     toast('AI生成が完了しました', 'success');
     saveState();
@@ -1661,6 +2141,16 @@ function addClip(name, dur, ratio) {
     return;
   }
   S.clips.push({ name: name, dur: dur, ratio: ratio || '' });
+  // メディアライブラリへ自動登録（AI生成クリップとして）
+  var genItem = {
+    id: 'gen_' + Date.now(),
+    name: 'AI生成クリップ ' + (S.clips.length),
+    type: 'video/mp4', cat: 'gen',
+    size: 0, dur: S.dur || 10
+  };
+  mediaStore.push(genItem);
+  saveMediaItem(genItem, null);
+  renderMedia(_mediaCat);
   renderTL();
   updStats();
   document.getElementById('btn-s4').disabled = false;
@@ -2098,7 +2588,7 @@ var scripts = {
   subtitle: { name: '03_subtitle.ps1 --- 字幕焼き込み', code: 'param([string]$Video="C:\\VideoProduction\\edited\\concat.mp4",[string]$Srt="C:\\VideoProduction\\assets\\srt\\subs.srt",[string]$Output="C:\\VideoProduction\\edited\\subtitled.mp4")\n$SrtEsc=$Srt.Replace("\\","\\\\").Replace(":","\\:")\nffmpeg -i $Video -vf "subtitles=\'${SrtEsc}\':force_style=\'FontName=Noto Sans JP,FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Alignment=2,MarginV=30\'" -c:a copy $Output\nWrite-Host "字幕挿入完了: $Output"' },
   audio: { name: '04_audio.ps1 --- BGM+ナレーション合成', code: 'param([string]$Video="C:\\VideoProduction\\edited\\subtitled.mp4",[string]$Nar="C:\\VideoProduction\\assets\\audio\\narration.wav",[string]$BGM="C:\\VideoProduction\\assets\\audio\\bgm.mp3",[string]$Output="C:\\VideoProduction\\edited\\with_audio.mp4",[float]$NV=0.9,[float]$BV=0.2)\nffmpeg -i $Video -i $Nar -i $BGM -filter_complex "[1:a]volume=${NV}[n];[2:a]volume=${BV}[b];[n][b]amix=inputs=2:duration=first[out]" -map 0:v -map "[out]" -c:v copy -c:a aac -b:a 192k $Output\nWrite-Host "音声合成完了: $Output"' },
   export: { name: '05_export.ps1 --- SNS最終書き出し', code: 'param([string]$Input="C:\\VideoProduction\\edited\\with_audio.mp4",[string]$Platform="instagram")\n$ts=Get-Date -f "yyyyMMdd_HHmm"\n$out="C:\\VideoProduction\\exports\\${Platform}\\${ts}_output.mp4"\nNew-Item -ItemType Directory -Force -Path (Split-Path $out) | Out-Null\nswitch($Platform){\n    "instagram"{ ffmpeg -i $Input -vcodec libx264 -crf 23 -preset slow -maxrate 3500k -bufsize 7000k -r 30 -acodec aac -b:a 128k -ar 44100 -movflags +faststart $out }\n    "youtube"  { ffmpeg -i $Input -vcodec libx264 -crf 18 -preset slow -acodec aac -b:a 192k -movflags +faststart $out }\n    "lp"       { ffmpeg -i $Input -vcodec libx264 -crf 18 -preset slow -s 1920x1080 -acodec aac -b:a 192k -movflags +faststart $out }\n}\nWrite-Host "書き出し完了: $out"' },
-  full: { name: '06_full_pipeline.ps1 --- ワンコマンド全工程', code: 'param([string]$GenDir="C:\\VideoProduction\\generated",[string]$Srt="C:\\VideoProduction\\assets\\srt\\subs.srt",[string]$Nar="C:\\VideoProduction\\assets\\audio\\narration.wav",[string]$BGM="C:\\VideoProduction\\assets\\audio\\bgm.mp3",[string]$Platform="instagram")\n$s="C:\\VideoProduction\\scripts\\"\nWrite-Host "VIDEO PIPELINE 開始..."\n& "${s}01_concat.ps1" -InputDir $GenDir -Output "C:\\VideoProduction\\edited\\step1.mp4"\nif(Test-Path $Srt){ & "${s}03_subtitle.ps1" -Video "C:\\VideoProduction\\edited\\step1.mp4" -Srt $Srt -Output "C:\\VideoProduction\\edited\\step2.mp4"; $prev="C:\\VideoProduction\\edited\\step2.mp4" }\nelse{ $prev="C:\\VideoProduction\\edited\\step1.mp4" }\n& "${s}04_audio.ps1" -Video $prev -Nar $Nar -BGM $BGM -Output "C:\\VideoProduction\\edited\\step3.mp4"\n& "${s}05_export.ps1" -Input "C:\\VideoProduction\\edited\\step3.mp4" -Platform $Platform\nWrite-Host "完了！exports\\$Platform\\ を確認してください"' }
+  full: { name: '06_full_pipeline.ps1 --- ワンコマンド全工程', code: 'param([string]$GenDir="C:\\VideoProduction\\generated",[string]$Srt="C:\\VideoProduction\\assets\\srt\\subs.srt",[string]$Nar="C:\\VideoProduction\\assets\\audio\\narration.wav",[string]$BGM="C:\\VideoProduction\\assets\\audio\\bgm.mp3",[string]$Platform="instagram")\n$s="C:\\VideoProduction\\scripts\\"\nWrite-Host "V-Genesis v5 開始..."\n& "${s}01_concat.ps1" -InputDir $GenDir -Output "C:\\VideoProduction\\edited\\step1.mp4"\nif(Test-Path $Srt){ & "${s}03_subtitle.ps1" -Video "C:\\VideoProduction\\edited\\step1.mp4" -Srt $Srt -Output "C:\\VideoProduction\\edited\\step2.mp4"; $prev="C:\\VideoProduction\\edited\\step2.mp4" }\nelse{ $prev="C:\\VideoProduction\\edited\\step1.mp4" }\n& "${s}04_audio.ps1" -Video $prev -Nar $Nar -BGM $BGM -Output "C:\\VideoProduction\\edited\\step3.mp4"\n& "${s}05_export.ps1" -Input "C:\\VideoProduction\\edited\\step3.mp4" -Platform $Platform\nWrite-Host "完了！exports\\$Platform\\ を確認してください"' }
 };
 
 function showSc(k) {
@@ -2151,13 +2641,67 @@ function updStats() {
   document.getElementById('st-exp').textContent = S.expCnt;
 }
 
+// ── VOICEVOX ローカル統合 ──────────────────────────────────────────
+var VV_BASE = 'http://localhost:50021';
+
+function checkVV() {
+  fetch(VV_BASE + '/version', { signal: AbortSignal.timeout(1500) })
+    .then(r => r.text()).then(v => {
+      var dot = document.getElementById('vv-dot');
+      var lbl = document.getElementById('rp-vv');
+      var btn = document.getElementById('vv-btn');
+      if (dot) { dot.className = 'td ton'; }
+      if (lbl) lbl.textContent = 'v' + v.replace(/"/g,'');
+      if (btn) btn.style.background = 'var(--grn)';
+    }).catch(() => {
+      var dot = document.getElementById('vv-dot');
+      var lbl = document.getElementById('rp-vv');
+      var btn = document.getElementById('vv-btn');
+      if (dot) { dot.className = 'td'; dot.style.background = 'var(--red,#e74c3c)'; }
+      if (lbl) lbl.textContent = '未起動';
+      if (btn) btn.style.background = '';
+    });
+}
+
+async function genVoiceVox(text, speakerId) {
+  speakerId = speakerId || 0;
+  // 1) クエリ生成
+  var q = await fetch(VV_BASE + '/audio_query?text=' + encodeURIComponent(text) + '&speaker=' + speakerId, { method:'POST' });
+  if (!q.ok) throw new Error('audio_query failed: ' + q.status);
+  var query = await q.json();
+  // 2) 音声合成
+  var s = await fetch(VV_BASE + '/synthesis?speaker=' + speakerId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(query)
+  });
+  if (!s.ok) throw new Error('synthesis failed: ' + s.status);
+  return await s.blob(); // WAV blob
+}
+
 function openVV() {
   var t = document.getElementById('s4-nar').value;
-  if (t) {
-    navigator.clipboard.writeText(t);
-    toast('原稿をコピーしました。VOICEVOXのテキスト欄に貼り付けてください。', 'success', 3000);
-  }
-  window.open('https://voicevox.hiroshiba.jp/', '_blank');
+  if (!t) { toast('ナレーションテキストを入力してください', 'warning'); return; }
+
+  // ローカルVOICEVOX APIを試みる
+  var spk = 88; // default: VOICEVOX Nemo
+  var sel = document.getElementById('vv-speaker');
+  if (sel) spk = parseInt(sel.value) || 88;
+
+  toast('VOICEVOX で音声生成中...', 'info', 5000);
+  genVoiceVox(t, spk).then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'narration.wav';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('narration.wav をダウンロードしました', 'success', 4000);
+  }).catch(function(err) {
+    // ローカル失敗 → クリップボードコピーしてウェブを開く
+    navigator.clipboard.writeText(t).catch(()=>{});
+    toast('VOICEVOX未起動。原稿をコピーしました。アプリを起動してください。', 'warning', 4000);
+  });
 }
 
 // ════════════════════════════════════════
@@ -2210,10 +2754,954 @@ document.addEventListener('keydown', function(e) {
   if (e.ctrlKey && e.key === 'k') { e.preventDefault(); openModal('modal-api'); return; }
 });
 
+// ═══════════════════════════════════════════
+// MEDIA LIBRARY
+// ═══════════════════════════════════════════
+// ── IndexedDB バックエンド ───────────────────────────────────────
+var mediaStore = [];           // メタデータ配列（srcなし）
+var mediaBlobMap = {};         // id → objectURL (揮発性)
+var _vgDB = null;
+
+function openMediaDB() {
+  return new Promise(function(resolve, reject) {
+    if (_vgDB) { resolve(_vgDB); return; }
+    var req = indexedDB.open('vgenesis_media', 1);
+    req.onupgradeneeded = function(e) {
+      var db = e.target.result;
+      if (!db.objectStoreNames.contains('files'))
+        db.createObjectStore('files', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('meta'))
+        db.createObjectStore('meta',  { keyPath: 'id' });
+    };
+    req.onsuccess = function(e) { _vgDB = e.target.result; resolve(_vgDB); };
+    req.onerror   = function(e) { reject(e.target.error); };
+  });
+}
+
+function saveMediaItem(item, blob) {
+  openMediaDB().then(function(db) {
+    var tx = db.transaction(['files','meta'], 'readwrite');
+    tx.objectStore('meta').put({ id:item.id, name:item.name, type:item.type, cat:item.cat, size:item.size, dur:item.dur||0 });
+    if (blob) tx.objectStore('files').put({ id:item.id, blob:blob });
+  }).catch(function(e){ logError('[IDB] saveMediaItem: ' + e.message); });
+}
+
+function deleteMediaItem(id) {
+  openMediaDB().then(function(db) {
+    var tx = db.transaction(['files','meta'], 'readwrite');
+    tx.objectStore('meta').delete(id);
+    tx.objectStore('files').delete(id);
+  }).catch(function(e){ logError('[IDB] deleteMediaItem: ' + e.message); });
+  if (mediaBlobMap[id]) { URL.revokeObjectURL(mediaBlobMap[id]); delete mediaBlobMap[id]; }
+}
+
+function loadMediaDB() {
+  return openMediaDB().then(function(db) {
+    return new Promise(function(resolve) {
+      var metas = [];
+      var metaReq = db.transaction('meta','readonly').objectStore('meta').getAll();
+      metaReq.onsuccess = function(e) { metas = e.target.result || []; };
+      // load blobs for objectURLs
+      var blobTx = db.transaction('files','readonly');
+      var blobStore = blobTx.objectStore('files');
+      blobTx.oncomplete = function() {
+        mediaStore = metas;
+        resolve();
+      };
+      metas.forEach(function(m) {
+        var req = blobStore.get(m.id);
+        req.onsuccess = function(e) {
+          if (e.target.result && e.target.result.blob) {
+            mediaBlobMap[m.id] = URL.createObjectURL(e.target.result.blob);
+          }
+        };
+      });
+    });
+  });
+}
+
+function saveMedia() { /* no-op: individual items saved via saveMediaItem() */ }
+
+function renderMedia(cat) {
+  var grid = document.getElementById('media-grid');
+  var empty = document.getElementById('media-empty');
+  var items = cat === 'all' ? mediaStore : mediaStore.filter(function(m){ return m.cat === cat; });
+  if (items.length === 0) {
+    if (empty) empty.style.display = 'block';
+    // remove old items
+    grid.querySelectorAll('.media-item').forEach(function(el){ el.remove(); });
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  grid.querySelectorAll('.media-item').forEach(function(el){ el.remove(); });
+  items.forEach(function(item) {
+    var div = document.createElement('div');
+    div.className = 'media-item';
+    div.dataset.id = item.id;
+    div.draggable = true;
+    div.addEventListener('dragstart', function(e){ e.dataTransfer.setData('mediaId', item.id); });
+    var thumb = '';
+    var blobUrl = mediaBlobMap[item.id] || '';
+    if (item.cat === 'image' && blobUrl) {
+      thumb = '<img class="media-thumb" src="' + blobUrl + '" alt="' + item.name + '">';
+    } else if (item.cat === 'video' && blobUrl) {
+      thumb = '<video class="media-thumb" src="' + blobUrl + '" muted></video>';
+    } else {
+      var emoji = item.cat === 'audio' ? '&#127925;' : item.cat === 'video' ? '&#127902;' : item.cat === 'gen' ? '&#9889;' : '&#128190;';
+      thumb = '<div class="media-thumb-placeholder">' + emoji + '</div>';
+    }
+    var sizeStr = item.size > 1048576 ? (item.size/1048576).toFixed(1)+'MB' : (item.size/1024).toFixed(0)+'KB';
+    div.innerHTML = thumb +
+      '<div class="media-name" title="' + item.name + '">' + item.name + '</div>' +
+      '<div class="media-meta">' + sizeStr + (item.dur ? ' · ' + item.dur.toFixed(1) + 's' : '') + '</div>' +
+      '<div class="media-actions">' +
+        '<button class="btn btn-g" style="padding:1px 5px;font-size:9px;" onclick="addMediaToTimeline(\'' + item.id + '\')">+TL</button>' +
+        '<button class="btn btn-g" style="padding:1px 5px;font-size:9px;" onclick="removeMedia(\'' + item.id + '\')">&#10005;</button>' +
+      '</div>';
+    grid.appendChild(div);
+  });
+  // Update stats
+  var totalSize = mediaStore.reduce(function(a,m){ return a + (m.size||0); }, 0);
+  var countEl = document.getElementById('media-count');
+  var sizeEl = document.getElementById('media-size');
+  if (countEl) countEl.textContent = mediaStore.length + '件';
+  if (sizeEl) sizeEl.textContent = (totalSize/1048576).toFixed(1) + ' MB';
+}
+
+var _mediaCat = 'all';
+function filterMedia(cat, btn) {
+  _mediaCat = cat;
+  document.querySelectorAll('.media-filter').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  renderMedia(cat);
+}
+
+function handleMediaDrop(e) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'var(--ln2)';
+  handleMediaFiles(e.dataTransfer.files);
+}
+
+function handleMediaFiles(files) {
+  if (!files || !files.length) return;
+  var promises = [];
+  Array.from(files).forEach(function(file) {
+    var cat = file.type.startsWith('video') ? 'video' :
+              file.type.startsWith('image') ? 'image' :
+              file.type.startsWith('audio') ? 'audio' : 'other';
+    var id = 'media_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    var p = new Promise(function(resolve) {
+        var url = URL.createObjectURL(file);
+        mediaBlobMap[id] = url;
+        var item = { id:id, name:file.name, type:file.type, cat:cat, size:file.size, dur:0 };
+        if (cat === 'video' || cat === 'audio') {
+          var media = document.createElement(cat === 'video' ? 'video' : 'audio');
+          media.src = url;
+          media.onloadedmetadata = function() { item.dur = media.duration; saveMediaItem(item, file); resolve(item); };
+          media.onerror = function() { saveMediaItem(item, file); resolve(item); };
+        } else {
+          saveMediaItem(item, file);
+          resolve(item);
+        }
+    });
+    promises.push(p);
+  });
+  Promise.all(promises).then(function(items) {
+    items.forEach(function(item) { mediaStore.push(item); });
+    saveMedia();
+    renderMedia(_mediaCat);
+    toast(items.length + '件のファイルを追加しました', 'success');
+  }).catch(function(err) {
+    toast('ファイル読み込みエラー: ' + err.message, 'error');
+  });
+}
+
+function removeMedia(id) {
+  mediaStore = mediaStore.filter(function(m){ return m.id !== id; });
+  deleteMediaItem(id);
+  renderMedia(_mediaCat);
+}
+
+function clearMedia() {
+  if (!confirm('すべての素材を削除しますか？')) return;
+  mediaStore.forEach(function(m) { deleteMediaItem(m.id); });
+  mediaStore = [];
+  mediaBlobMap = {};
+  renderMedia(_mediaCat);
+  toast('メディアライブラリをクリアしました', 'info');
+}
+
+function syncDrive() {
+  window.open('https://drive.google.com/drive/folders/1qAUKiSQNy-Wqw_F9QmL7vMXXvbK0OHgd?usp=drive_link', '_blank');
+  toast('Google Driveを開きました。ファイルをダウンロード後にドロップしてください', 'info', 4000);
+}
+
+// ═══════════════════════════════════════════
+// VISUAL TIMELINE
+// ═══════════════════════════════════════════
+var tlClips = [];
+var tlTrans = 'cut';
+
+var TL_TRANS_LABELS = { cut:'ダイレクトカット', fade:'フェード', wipe:'ワイプ', zoom:'ズームイン', slide:'スライド' };
+var TL_TRANS_FFMPEG = {
+  cut:   '',
+  fade:  '-vf "fade=t=in:st=0:d=0.5,fade=t=out:st={END}:d=0.5"',
+  wipe:  "xfade=transition=wiperight:duration=0.5",
+  zoom:  '-vf "zoompan=z=\'if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0015))\':d=125:s=1080x1920"',
+  slide: "xfade=transition=slideleft:duration=0.5"
+};
+
+function setTrans(tr, btn) {
+  tlTrans = tr;
+  document.querySelectorAll('.tl-trans').forEach(function(b){ b.classList.remove('active-trans'); });
+  if (btn) btn.classList.add('active-trans');
+  var lbl = document.getElementById('tl-trans-label');
+  if (lbl) lbl.textContent = TL_TRANS_LABELS[tr] || tr;
+  toast('トランジション: ' + (TL_TRANS_LABELS[tr] || tr), 'info', 1500);
+}
+
+function addClipToTimeline() {
+  if (mediaStore.length === 0) {
+    toast('先にメディアライブラリに素材を追加してください', 'warning');
+    gs('media');
+    return;
+  }
+  // Show media picker overlay (simplified: add first available video/all)
+  var videos = mediaStore.filter(function(m){ return m.cat === 'video' || m.cat === 'gen'; });
+  if (videos.length === 0) {
+    toast('動画素材がありません', 'warning');
+    return;
+  }
+  var pick = videos[tlClips.length % videos.length];
+  addMediaToTimeline(pick.id);
+}
+
+function addMediaToTimeline(mediaId) {
+  var item = mediaStore.find(function(m){ return m.id === mediaId; });
+  if (!item) { toast('素材が見つかりません', 'error'); return; }
+  var clip = { id: 'clip_' + Date.now(), mediaId: mediaId, name: item.name, dur: item.dur || S.dur || 10, color: '#' + Math.floor(Math.random()*0x1000000).toString(16).padStart(6,'0') };
+  tlClips.push(clip);
+  renderTimeline();
+  toast(item.name + ' をタイムラインに追加', 'success', 2000);
+}
+
+function dropClipToTimeline(e) {
+  e.preventDefault();
+  var mediaId = e.dataTransfer.getData('mediaId');
+  if (mediaId) addMediaToTimeline(mediaId);
+}
+
+function removeClipFromTimeline(clipId) {
+  tlClips = tlClips.filter(function(c){ return c.id !== clipId; });
+  renderTimeline();
+}
+
+function clearTimeline() {
+  tlClips = [];
+  renderTimeline();
+  toast('タイムラインをクリアしました', 'info');
+}
+
+function renderTimeline() {
+  var track = document.getElementById('timeline-track');
+  var hint = document.getElementById('tl-empty-hint');
+  var countEl = document.getElementById('tl-clip-count');
+  var durEl = document.getElementById('tl-total-dur');
+  if (!track) return;
+  track.querySelectorAll('.tl-clip,.tl-trans-marker').forEach(function(el){ el.remove(); });
+  if (tlClips.length === 0) {
+    if (hint) hint.style.display = 'block';
+    if (countEl) countEl.textContent = '0';
+    if (durEl) durEl.textContent = '0.0s';
+    return;
+  }
+  if (hint) hint.style.display = 'none';
+  var totalDur = 0;
+  tlClips.forEach(function(clip, i) {
+    if (i > 0) {
+      var marker = document.createElement('div');
+      marker.className = 'tl-trans-marker';
+      marker.title = TL_TRANS_LABELS[tlTrans];
+      marker.innerHTML = '<span style="font-size:14px;color:var(--acc);">&#9656;</span>';
+      track.appendChild(marker);
+    }
+    var el = document.createElement('div');
+    el.className = 'tl-clip';
+    el.draggable = true;
+    var hue = parseInt(clip.color.slice(1,3), 16);
+    el.style.background = 'linear-gradient(135deg, hsl(' + (hue*1.4%360) + ',60%,25%), hsl(' + ((hue*1.4+40)%360) + ',60%,35%))';
+    var shortName = clip.name.length > 12 ? clip.name.slice(0,10) + '..' : clip.name;
+    el.innerHTML =
+      '<span class="clip-del" onclick="removeClipFromTimeline(\'' + clip.id + '\')" title="削除">&#10005;</span>' +
+      '<span style="font-size:10px;display:block;text-align:center;">' + shortName + '</span>' +
+      '<span class="clip-dur" style="display:block;text-align:center;">' + clip.dur.toFixed(1) + 's</span>' +
+      '<div style="display:flex;gap:2px;margin-top:3px;align-items:center;">' +
+        '<span style="font-size:7px;color:rgba(255,255,255,.5);">IN</span>' +
+        '<input type="range" class="tl-trim" min="0" max="' + clip.dur + '" step="0.1" value="0"' +
+          ' style="-webkit-appearance:none;flex:1;height:3px;background:rgba(255,255,255,.2);border-radius:2px;"' +
+          ' oninput="updateClipTrim(\'' + clip.id + '\',\'in\',+this.value)" title="イン点">' +
+        '<input type="range" class="tl-trim" min="0" max="' + clip.dur + '" step="0.1" value="' + clip.dur + '"' +
+          ' style="-webkit-appearance:none;flex:1;height:3px;background:rgba(255,255,255,.2);border-radius:2px;"' +
+          ' oninput="updateClipTrim(\'' + clip.id + '\',\'out\',+this.value)" title="アウト点">' +
+        '<span style="font-size:7px;color:rgba(255,255,255,.5);">OUT</span>' +
+      '</div>';
+    track.appendChild(el);
+    totalDur += clip.dur;
+  });
+  if (countEl) countEl.textContent = tlClips.length;
+  if (durEl) durEl.textContent = totalDur.toFixed(1) + 's';
+}
+
+function updateClipTrim(clipId, point, val) {
+  var clip = tlClips.find(function(c){ return c.id === clipId; });
+  if (!clip) return;
+  if (point === 'in') { clip.trimIn = val; }
+  else { clip.trimOut = val; }
+  var eff = (clip.trimOut || clip.dur) - (clip.trimIn || 0);
+  var durEl = document.getElementById('tl-total-dur');
+  var total = tlClips.reduce(function(a,c){ return a + ((c.trimOut||c.dur)-(c.trimIn||0)); }, 0);
+  if (durEl) durEl.textContent = total.toFixed(1) + 's (トリム後)';
+}
+
+// ═══════════════════════════════════════════
+// COLOR GRADING (LUT → FFmpeg filter)
+// ═══════════════════════════════════════════
+var LUT_FILTERS = {
+  none:   '',
+  cinema: 'curves=r=\'0/0 0.15/0.05 1/0.95\':g=\'0/0.02 1/0.88\':b=\'0/0.05 1/0.85\',colorbalance=ss=-0.1:ms=0.1,vignette=PI/6',
+  vivid:  'eq=saturation=1.6:contrast=1.1:brightness=0.02,curves=b=\'0/0 0.5/0.45 1/1\'',
+  bw:     'colorchannelmixer=.299:.587:.114:0:.299:.587:.114:0:.299:.587:.114:0,curves=all=\'0/0 0.4/0.35 0.7/0.75 1/1\'',
+  warm:   'colorbalance=ss=0.1:ms=0.15:hs=0.05,curves=r=\'0/0 0.5/0.55 1/1\':b=\'0/0 0.5/0.42 1/0.88\'',
+  cool:   'colorbalance=ss=-0.1:ms=-0.15,curves=r=\'0/0 0.5/0.44 1/0.88\':b=\'0/0 0.5/0.55 1/1\'',
+  fade:   'curves=all=\'0/0.08 0.5/0.5 1/0.92\',eq=saturation=0.75:contrast=0.9',
+  golden: 'colorbalance=ss=0.2:ms=0.15,curves=r=\'0/0 0.5/0.58 1/1\':g=\'0/0 0.5/0.5 1/0.92\':b=\'0/0 0.5/0.38 1/0.8\''
+};
+var LUT_NAMES = {
+  none:'オリジナル', cinema:'映画的', vivid:'ビビッド', bw:'白黒', warm:'ウォーム', cool:'クール', fade:'フェード', golden:'ゴールデン'
+};
+
+function applyLut(lut, el) {
+  document.querySelectorAll('.lut-chip').forEach(function(c){ c.classList.remove('active-lut'); });
+  if (el) el.classList.add('active-lut');
+  var cmdRow = document.getElementById('lut-cmd-row');
+  var cmdEl = document.getElementById('lut-cmd');
+  if (lut === 'none') {
+    if (cmdRow) cmdRow.style.display = 'none';
+    toast('カラーグレーディング: オリジナル', 'info', 1500);
+    return;
+  }
+  if (cmdRow) cmdRow.style.display = 'block';
+  var filter = LUT_FILTERS[lut] || '';
+  var cmd = 'ffmpeg -i input.mp4 -vf "' + filter + '" -c:a copy output_' + lut + '.mp4';
+  if (cmdEl) cmdEl.textContent = cmd;
+  toast(LUT_NAMES[lut] + ' LUTを適用', 'success', 1500);
+}
+
+// ═══════════════════════════════════════════
+// TEXT OVERLAY
+// ═══════════════════════════════════════════
+var OVL_STYLES = {
+  white:  'fontcolor=white:fontsize={SIZE}:borderw=0',
+  black:  'fontcolor=black:fontsize={SIZE}:borderw=0',
+  yellow: 'fontcolor=yellow:fontsize={SIZE}:borderw=1:bordercolor=black',
+  shadow: 'fontcolor=white:fontsize={SIZE}:shadowcolor=black:shadowx=2:shadowy=2',
+  box:    'fontcolor=white:fontsize={SIZE}:box=1:boxcolor=black@0.6:boxborderw=5'
+};
+var OVL_POSITIONS = {
+  center:   "x=(w-text_w)/2:y=(h-text_h)/2",
+  top:      "x=(w-text_w)/2:y=50",
+  bottom:   "x=(w-text_w)/2:y=h-text_h-60",
+  topleft:  "x=30:y=30",
+  topright: "x=w-text_w-30:y=30"
+};
+
+function genOvlCmd() {
+  var text  = (document.getElementById('ovl-text')  || {value:''}).value;
+  var size  = (document.getElementById('ovl-size')  || {value:'48'}).value;
+  var pos   = (document.getElementById('ovl-pos')   || {value:'bottom'}).value;
+  var style = (document.getElementById('ovl-style') || {value:'white'}).value;
+  var cmdRow = document.getElementById('ovl-cmd-row');
+  var cmdEl  = document.getElementById('ovl-cmd');
+  if (!text) { if (cmdRow) cmdRow.style.display = 'none'; return; }
+  if (cmdRow) cmdRow.style.display = 'block';
+  var styleStr  = (OVL_STYLES[style]    || OVL_STYLES.white).replace('{SIZE}', size);
+  var posStr    = OVL_POSITIONS[pos]    || OVL_POSITIONS.bottom;
+  var cmd = "ffmpeg -i input.mp4 -vf \"drawtext=text='" + text.replace(/'/g,"\\'") + "':" + styleStr + ':' + posStr + "\" -codec:a copy output_text.mp4";
+  if (cmdEl) cmdEl.textContent = cmd;
+}
+
+// ═══════════════════════════════════════════
+// CHAPTER MARKER GENERATOR
+// ═══════════════════════════════════════════
+function addChapterRow() {
+  var rows = document.getElementById('chapter-rows');
+  var div = document.createElement('div');
+  div.className = 'chapter-row';
+  div.style.cssText = 'display:flex;gap:6px;margin-bottom:4px;';
+  div.innerHTML = '<input type="text" placeholder="00:00" style="width:60px;font-family:var(--mon);font-size:11px;" class="chap-time" oninput="genChapters()">' +
+    '<input type="text" placeholder="チャプタータイトル" style="flex:1;" class="chap-title" oninput="genChapters()">' +
+    '<button class="btn btn-g" style="padding:1px 6px;font-size:10px;" onclick="this.parentNode.remove();genChapters()">&#10005;</button>';
+  rows.appendChild(div);
+  genChapters();
+}
+
+function genChapters() {
+  var times  = Array.from(document.querySelectorAll('.chap-time')).map(function(i){ return i.value.trim(); });
+  var titles = Array.from(document.querySelectorAll('.chap-title')).map(function(i){ return i.value.trim(); });
+  var lines = [];
+  for (var i = 0; i < times.length; i++) {
+    if (times[i] && titles[i]) lines.push(times[i] + ' ' + titles[i]);
+  }
+  var out = document.getElementById('chap-out');
+  var txt = document.getElementById('chap-txt');
+  if (lines.length === 0) { if (out) out.style.display = 'none'; return; }
+  if (out) out.style.display = 'block';
+  if (txt) txt.textContent = lines.join('\n');
+}
+
+// ═══════════════════════════════════════════
+// THUMBNAIL GENERATOR
+// ═══════════════════════════════════════════
+var TN_BG_STYLES = {
+  dark: function(ctx, w, h, color) {
+    var g = ctx.createLinearGradient(0,0,w,h);
+    g.addColorStop(0,'#06080e'); g.addColorStop(1,'#0c1428');
+    ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+    // accent line
+    ctx.strokeStyle = color; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(0,h-8); ctx.lineTo(w,h-8); ctx.stroke();
+    ctx.strokeStyle = color+'44'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0,h-14); ctx.lineTo(w,h-14); ctx.stroke();
+  },
+  gradient: function(ctx, w, h, color) {
+    var g = ctx.createLinearGradient(0,0,w,h);
+    g.addColorStop(0,'#06080e'); g.addColorStop(0.6, color+'22'); g.addColorStop(1,'#0c1428');
+    ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+  },
+  split: function(ctx, w, h, color) {
+    ctx.fillStyle = '#06080e'; ctx.fillRect(0,0,w/2,h);
+    ctx.fillStyle = color+'18'; ctx.fillRect(w/2,0,w/2,h);
+    ctx.strokeStyle = color; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(w/2,0); ctx.lineTo(w/2,h); ctx.stroke();
+  },
+  cinematic: function(ctx, w, h, color) {
+    var g = ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,w*0.7);
+    g.addColorStop(0,color+'11'); g.addColorStop(1,'#06080e');
+    ctx.fillStyle = '#06080e'; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,56); ctx.fillRect(0,h-56,w,56);
+  },
+  minimal: function(ctx, w, h, color) {
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle = color; ctx.fillRect(0,h-12,w,12);
+  }
+};
+
+function genThumbnail() {
+  var canvas = document.getElementById('tn-canvas');
+  if (!canvas) return;
+  var ctx    = canvas.getContext('2d');
+  var w      = canvas.width, h = canvas.height;
+  var main   = (document.getElementById('tn-main')||{}).value || 'V-Genesis';
+  var sub    = (document.getElementById('tn-sub')||{}).value  || '';
+  var bgType = (document.getElementById('tn-bg')||{}).value   || 'dark';
+  var color  = (document.getElementById('tn-color')||{}).value|| '#00c8ff';
+  var isLight = bgType === 'minimal';
+
+  ctx.clearRect(0,0,w,h);
+  (TN_BG_STYLES[bgType] || TN_BG_STYLES.dark)(ctx, w, h, color);
+
+  // Main text
+  var mainFontSize = main.length > 10 ? 96 : 120;
+  ctx.font = 'bold ' + mainFontSize + 'px "Bebas Neue", "Noto Sans JP", Impact, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // shadow
+  ctx.shadowColor = color; ctx.shadowBlur = 30;
+  ctx.fillStyle = isLight ? '#111111' : '#ffffff';
+  ctx.fillText(main, w/2, h * 0.42);
+  ctx.shadowBlur = 0;
+
+  if (sub) {
+    ctx.font = 'bold 48px "Inter", "Noto Sans JP", sans-serif';
+    ctx.fillStyle = isLight ? '#333333' : color;
+    ctx.fillText(sub, w/2, h * 0.64);
+  }
+
+  // V-Genesis watermark
+  ctx.font = '20px "IBM Plex Mono", monospace';
+  ctx.fillStyle = isLight ? '#aaaaaa' : 'rgba(255,255,255,0.2)';
+  ctx.textAlign = 'right';
+  ctx.fillText('V-Genesis v5', w-20, h-20);
+  ctx.textAlign = 'center';
+}
+
+function downloadThumbnail() {
+  var canvas = document.getElementById('tn-canvas');
+  if (!canvas) return;
+  genThumbnail();
+  var a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'thumbnail_vgenesis_' + Date.now() + '.png';
+  a.click();
+  toast('サムネイルをダウンロードしました（1280×720 PNG）', 'success');
+}
+
+// ═══════════════════════════════════════════
+// TEXT ANIMATION PRESETS
+// ═══════════════════════════════════════════
+var _currentAnim = 'none';
+var ANIM_FFMPEG = {
+  none:       '',
+  fadein:     "fade=t=in:st=0:d=0.8",
+  slideup:    "crop=in_w:in_h-50*(1-t):0:50*(1-t)",
+  typewriter: "drawtext=text='':fontsize=48:x=100:y=100", // placeholder
+  zoom:       "zoompan=z='min(zoom+0.002,1.2)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'",
+  bounce:     "setpts=0.5*PTS,fps=60"
+};
+var ANIM_LABEL = { none:'なし', fadein:'フェードイン', slideup:'スライドアップ', typewriter:'タイプライター', zoom:'ズームイン', bounce:'バウンス' };
+
+function applyAnim(anim, btn) {
+  _currentAnim = anim;
+  document.querySelectorAll('.anim-chip').forEach(function(b){ b.style.background=''; b.style.color=''; });
+  if (btn) { btn.style.background='var(--acc)'; btn.style.color='var(--bg)'; }
+  genOvlCmd();
+  toast('アニメーション: ' + (ANIM_LABEL[anim]||anim), 'info', 1500);
+}
+
+// genOvlCmd() override — アニメーション情報も含める
+var _origGenOvlCmd = genOvlCmd;
+genOvlCmd = function() {
+  _origGenOvlCmd();
+  if (_currentAnim !== 'none') {
+    var cmdEl = document.getElementById('ovl-cmd');
+    var cmdRow = document.getElementById('ovl-cmd-row');
+    if (cmdEl && cmdEl.textContent) {
+      var animFilter = ANIM_FFMPEG[_currentAnim] || '';
+      if (animFilter) {
+        cmdEl.textContent += '\n# アニメーション追加:\n# ffmpeg -i input.mp4 -vf "' + animFilter + '" -c:a copy output_anim.mp4';
+      }
+    }
+    if (cmdRow) cmdRow.style.display = 'block';
+  }
+};
+
+// ═══════════════════════════════════════════
+// 🧹 LOGO / WATERMARK REMOVER
+// ═══════════════════════════════════════════
+var _lrMode     = 'delogo';
+var _lrDragging = false;
+var _lrDragStart= { x:0, y:0 };
+var _lrNatW     = 1920;  // 元の動画/画像の幅
+var _lrNatH     = 1080;  // 元の動画/画像の高さ
+
+function setLrMode(mode, btn) {
+  _lrMode = mode;
+  document.querySelectorAll('.lr-mode-btn').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  var guide = document.getElementById('lr-iopaint-guide');
+  if (guide) guide.style.display = (mode === 'iopaint') ? 'block' : 'none';
+  genLrCmd();
+}
+
+/* プリセット: Sora透かし（1920×1080動画の右上 ≈ x=1680,y=30,w=220,h=80） */
+function lrPresetSora() {
+  setCoords(1680, 30, 220, 80);
+  toast('Sora透かし位置をプリセット (1920×1080 基準)', 'info', 2000);
+}
+function lrPresetTopRight() {
+  var w = parseInt(document.getElementById('lr-w').value)||200;
+  var h = parseInt(document.getElementById('lr-h').value)||80;
+  setCoords(_lrNatW - w - 20, 20, w, h);
+  toast('右上の一般的な透かし位置をセット', 'info', 2000);
+}
+function setCoords(x,y,w,h) {
+  document.getElementById('lr-x').value = x;
+  document.getElementById('lr-y').value = y;
+  document.getElementById('lr-w').value = w;
+  document.getElementById('lr-h').value = h;
+  lrDrawBox();
+  genLrCmd();
+}
+
+/* Canvas ドラッグ選択 */
+function lrStartDrag(e) {
+  var wrap = document.getElementById('lr-canvas-wrap');
+  var canvas = document.getElementById('lr-canvas');
+  if (!canvas.width) return;
+  _lrDragging = true;
+  var rect = wrap.getBoundingClientRect();
+  var scaleX = _lrNatW / canvas.offsetWidth;
+  var scaleY = _lrNatH / canvas.offsetHeight;
+  _lrDragStart = {
+    x: Math.round((e.clientX - rect.left) * scaleX),
+    y: Math.round((e.clientY - rect.top)  * scaleY)
+  };
+}
+function lrDrag(e) {
+  if (!_lrDragging) return;
+  var wrap  = document.getElementById('lr-canvas-wrap');
+  var canvas= document.getElementById('lr-canvas');
+  var rect  = wrap.getBoundingClientRect();
+  var scaleX= _lrNatW / canvas.offsetWidth;
+  var scaleY= _lrNatH / canvas.offsetHeight;
+  var curX  = Math.round((e.clientX - rect.left) * scaleX);
+  var curY  = Math.round((e.clientY - rect.top)  * scaleY);
+  var x = Math.min(_lrDragStart.x, curX);
+  var y = Math.min(_lrDragStart.y, curY);
+  var w = Math.abs(curX - _lrDragStart.x);
+  var h = Math.abs(curY - _lrDragStart.y);
+  document.getElementById('lr-x').value = x;
+  document.getElementById('lr-y').value = y;
+  document.getElementById('lr-w').value = w || 1;
+  document.getElementById('lr-h').value = h || 1;
+  lrDrawBox();
+}
+function lrEndDrag(e) {
+  if (!_lrDragging) return;
+  _lrDragging = false;
+  genLrCmd();
+}
+function lrManualCoord() { lrDrawBox(); genLrCmd(); }
+
+/* Canvas上に赤枠を描画 */
+function lrDrawBox() {
+  var canvas = document.getElementById('lr-canvas');
+  var selBox = document.getElementById('lr-sel-box');
+  if (!canvas.width || !selBox) return;
+  var x = parseInt(document.getElementById('lr-x').value)||0;
+  var y = parseInt(document.getElementById('lr-y').value)||0;
+  var w = parseInt(document.getElementById('lr-w').value)||1;
+  var h = parseInt(document.getElementById('lr-h').value)||1;
+  // convert to canvas display coords
+  var scaleX = canvas.offsetWidth  / _lrNatW;
+  var scaleY = canvas.offsetHeight / _lrNatH;
+  selBox.style.display  = 'block';
+  selBox.style.left     = Math.round(x * scaleX) + 'px';
+  selBox.style.top      = Math.round(y * scaleY) + 'px';
+  selBox.style.width    = Math.round(w * scaleX) + 'px';
+  selBox.style.height   = Math.round(h * scaleY) + 'px';
+}
+
+/* ファイルドロップ/選択 → Canvasにプレビュー */
+function lrDropVideo(e) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'var(--ln)';
+  var file = e.dataTransfer.files[0];
+  if (file) lrLoadFile(file);
+}
+function lrLoadFile(file) {
+  if (!file) return;
+  var canvas  = document.getElementById('lr-canvas');
+  var lbl     = document.getElementById('lr-preview-lbl');
+  var selBox  = document.getElementById('lr-sel-box');
+  var ctx     = canvas.getContext('2d');
+  var url     = URL.createObjectURL(file);
+  if (lbl) lbl.style.display = 'none';
+  if (selBox) selBox.style.display = 'none';
+  if (file.type.startsWith('image')) {
+    var img = new Image();
+    img.onload = function() {
+      _lrNatW = img.naturalWidth;
+      _lrNatH = img.naturalHeight;
+      canvas.height = Math.round(canvas.offsetWidth * (_lrNatH / _lrNatW));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      lrDrawBox();
+      toast('画像を読み込みました (' + _lrNatW + '×' + _lrNatH + ')', 'success', 2000);
+    };
+    img.src = url;
+  } else if (file.type.startsWith('video')) {
+    var vid = document.createElement('video');
+    vid.src = url;
+    vid.muted = true;
+    vid.onloadedmetadata = function() {
+      _lrNatW = vid.videoWidth  || 1920;
+      _lrNatH = vid.videoHeight || 1080;
+      canvas.height = Math.round(canvas.offsetWidth * (_lrNatH / _lrNatW));
+      vid.currentTime = 0.5;
+    };
+    vid.onseeked = function() {
+      ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      lrDrawBox();
+      toast('動画を読み込みました (' + _lrNatW + '×' + _lrNatH + ')  0.5秒フレームをプレビュー中', 'success', 3000);
+    };
+    vid.onerror = function() { URL.revokeObjectURL(url); toast('動画の読み込みに失敗しました', 'error'); };
+  }
+  // パスを自動セット（ファイル名のみ）
+  var inPath = document.getElementById('lr-input-path');
+  var outPath= document.getElementById('lr-output-path');
+  if (inPath  && !inPath.value)  inPath.value  = file.name;
+  if (outPath && !outPath.value) {
+    var ext  = file.name.split('.').pop();
+    var base = file.name.replace(/\.[^.]+$/, '');
+    outPath.value = base + '_removed.' + ext;
+  }
+  genLrCmd();
+}
+
+/* ─── IOPaint API 統合 ─── */
+var _iopaintConnected = false;
+var _iopaintLastResult = null; // { blob, url }
+
+function updateIopCmd() {
+  var model = (document.querySelector('input[name="iop-model"]:checked')||{value:'lama'}).value;
+  var dev   = (document.querySelector('input[name="iop-dev"]:checked')||{value:'cpu'}).value;
+  var el = document.getElementById('lr-iop-run');
+  if (el) el.textContent = 'iopaint start --model=' + model + ' --device=' + dev + ' --port=8081';
+  genLrCmd();
+}
+
+async function checkIoPaint() {
+  var dot = document.getElementById('iop-status-dot');
+  var lbl = document.getElementById('iop-status-lbl');
+  if (dot) dot.style.background = '#fa0';
+  if (lbl) lbl.textContent = '確認中…';
+  try {
+    var r = await fetch('http://localhost:8081/api/v1/server-config', { signal: AbortSignal.timeout(3000) });
+    if (r.ok) {
+      var cfg = await r.json();
+      _iopaintConnected = true;
+      if (dot) dot.style.background = 'var(--grn)';
+      if (lbl) lbl.textContent = '接続済 — モデル: ' + (cfg.name || cfg.model || 'LaMa');
+    } else { throw new Error('HTTP ' + r.status); }
+  } catch(e) {
+    _iopaintConnected = false;
+    if (dot) dot.style.background = '#e44';
+    if (lbl) lbl.textContent = '未接続 (' + (e.name === 'TimeoutError' ? 'タイムアウト' : e.message) + ')';
+  }
+}
+
+async function iopaintPreview() {
+  var canvas = document.getElementById('lr-canvas');
+  if (!canvas || !canvas.width) { alert('まず動画/画像をドロップしてください'); return; }
+  var x = parseInt(document.getElementById('lr-x').value)||0;
+  var y = parseInt(document.getElementById('lr-y').value)||0;
+  var w = parseInt(document.getElementById('lr-w').value)||200;
+  var h = parseInt(document.getElementById('lr-h').value)||80;
+  if (w < 1 || h < 1) { alert('除去エリアを選択してください'); return; }
+
+  var status = document.getElementById('iop-proc-status');
+  var prevArea = document.getElementById('iop-preview-area');
+  if (status) { status.style.display = 'block'; status.textContent = '⏳ IOPaint AIに送信中…'; }
+
+  try {
+    // スケール係数（canvas表示サイズ vs 実際の動画解像度）
+    var scX = canvas.width  / _lrNatW;
+    var scY = canvas.height / _lrNatH;
+
+    // マスク生成（黒=保持、白=除去）
+    var maskC = document.createElement('canvas');
+    maskC.width  = canvas.width;
+    maskC.height = canvas.height;
+    var mCtx = maskC.getContext('2d');
+    mCtx.fillStyle = '#000';
+    mCtx.fillRect(0, 0, maskC.width, maskC.height);
+    mCtx.fillStyle = '#fff';
+    mCtx.fillRect(Math.round(x*scX), Math.round(y*scY), Math.round(w*scX), Math.round(h*scY));
+
+    var imgB64  = canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
+    var maskB64 = maskC.toDataURL('image/png').split(',')[1];
+
+    // Before保存
+    var beforeC = document.getElementById('iop-before-canvas');
+    if (beforeC) {
+      beforeC.width  = canvas.width;
+      beforeC.height = canvas.height;
+      beforeC.getContext('2d').drawImage(canvas, 0, 0);
+    }
+
+    if (status) status.textContent = '⏳ IOPaint AIが処理中（初回は数秒かかります）…';
+
+    var resp = await fetch('http://localhost:8081/api/v1/inpaint', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imgB64, mask: maskB64 }),
+      signal: AbortSignal.timeout(60000)
+    });
+    if (!resp.ok) throw new Error('IOPaint HTTP ' + resp.status + ' — サーバーが起動しているか確認してください');
+
+    var blob = await resp.blob();
+    if (_iopaintLastResult) URL.revokeObjectURL(_iopaintLastResult.url);
+    _iopaintLastResult = { blob: blob, url: URL.createObjectURL(blob) };
+
+    // After表示
+    var afterC = document.getElementById('iop-after-canvas');
+    if (afterC) {
+      afterC.width  = canvas.width;
+      afterC.height = canvas.height;
+      var img = new Image();
+      img.onload = function() { afterC.getContext('2d').drawImage(img, 0, 0, afterC.width, afterC.height); };
+      img.src = _iopaintLastResult.url;
+    }
+
+    if (prevArea) prevArea.style.display = 'block';
+    if (status)   status.textContent = '✅ AI除去完了！ 結果を確認してください。';
+    _iopaintConnected = true;
+    var dot = document.getElementById('iop-status-dot');
+    var lbl = document.getElementById('iop-status-lbl');
+    if (dot) dot.style.background = 'var(--grn)';
+    if (lbl) lbl.textContent = '接続済 — 処理完了';
+  } catch(e) {
+    if (status) status.textContent = '❌ エラー: ' + e.message;
+    _iopaintConnected = false;
+    var dot = document.getElementById('iop-status-dot');
+    if (dot) dot.style.background = '#e44';
+  }
+}
+
+function iopaintApplyToMain() {
+  if (!_iopaintLastResult) return;
+  var canvas = document.getElementById('lr-canvas');
+  var img = new Image();
+  img.onload = function() { canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); };
+  img.src = _iopaintLastResult.url;
+  var s = document.getElementById('iop-proc-status');
+  if (s) s.textContent = '✅ メインキャンバスに適用しました';
+}
+
+function iopaintBatchScript() {
+  var x   = parseInt(document.getElementById('lr-x').value)||0;
+  var y   = parseInt(document.getElementById('lr-y').value)||0;
+  var w   = parseInt(document.getElementById('lr-w').value)||200;
+  var h   = parseInt(document.getElementById('lr-h').value)||80;
+  var inp = (document.getElementById('lr-input-path')||{}).value || 'input.mp4';
+  var out = (document.getElementById('lr-output-path')||{}).value || 'output.mp4';
+  var model = (document.querySelector('input[name="iop-model"]:checked')||{value:'lama'}).value;
+
+  var script = '#!/usr/bin/env python3\n' +
+    '# V-Genesis — IOPaint バッチ処理スクリプト\n' +
+    '# pip install iopaint requests pillow\n' +
+    '# iopaint start --model=' + model + ' --device=cpu --port=8081\n\n' +
+    'import os, subprocess, base64, requests\n' +
+    'from PIL import Image, ImageDraw\n' +
+    'from pathlib import Path\n\n' +
+    'INPUT  = r"' + inp + '"\n' +
+    'OUTPUT = r"' + out + '"\n' +
+    'FRAMES = r"C:/VideoProduction/iop_frames"\n' +
+    'RESULT = r"C:/VideoProduction/iop_result"\n' +
+    'X, Y, W, H = ' + x + ', ' + y + ', ' + w + ', ' + h + '\n' +
+    'IOP_URL = "http://localhost:8081/api/v1/inpaint"\n\n' +
+    'os.makedirs(FRAMES, exist_ok=True)\n' +
+    'os.makedirs(RESULT, exist_ok=True)\n\n' +
+    '# フレーム抽出\n' +
+    'subprocess.run(["ffmpeg", "-i", INPUT, "-q:v", "2",\n' +
+    '    os.path.join(FRAMES, "frame_%05d.png"), "-y"], check=True)\n\n' +
+    '# 各フレームをIOPaintで処理\n' +
+    'frames = sorted(Path(FRAMES).glob("frame_*.png"))\n' +
+    'print(f"処理フレーム数: {len(frames)}")\n\n' +
+    'def make_mask(w_img, h_img):\n' +
+    '    mask = Image.new("L", (w_img, h_img), 0)\n' +
+    '    d = ImageDraw.Draw(mask)\n' +
+    '    d.rectangle([X, Y, X+W, Y+H], fill=255)\n' +
+    '    return mask\n\n' +
+    'for i, fp in enumerate(frames):\n' +
+    '    img = Image.open(fp).convert("RGB")\n' +
+    '    mask = make_mask(img.width, img.height)\n' +
+    '    def b64(pil): import io; buf=io.BytesIO(); pil.save(buf,format="JPEG",quality=95); return base64.b64encode(buf.getvalue()).decode()\n' +
+    '    resp = requests.post(IOP_URL, json={"image": b64(img), "mask": b64(mask)}, timeout=120)\n' +
+    '    resp.raise_for_status()\n' +
+    '    out_path = os.path.join(RESULT, fp.name)\n' +
+    '    with open(out_path, "wb") as f: f.write(resp.content)\n' +
+    '    if (i+1) % 30 == 0: print(f"  {i+1}/{len(frames)} 完了")\n\n' +
+    'print("フレーム処理完了。動画に結合中…")\n' +
+    '# 元動画からFPSを取得して結合\n' +
+    'subprocess.run(["ffmpeg", "-framerate", "30", "-i",\n' +
+    '    os.path.join(RESULT, "frame_%05d.png"),\n' +
+    '    "-i", INPUT, "-map", "0:v", "-map", "1:a?",\n' +
+    '    "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p",\n' +
+    '    "-c:a", "copy", OUTPUT, "-y"], check=True)\n' +
+    'print(f"完成: {OUTPUT}")\n';
+
+  var cmdEl = document.getElementById('lr-cmd');
+  var lblEl = document.getElementById('lr-cmd-lbl');
+  if (lblEl) lblEl.textContent = 'IOPaint バッチ処理 Python スクリプト:';
+  if (cmdEl) cmdEl.textContent = script;
+}
+
+/* FFmpeg / IOPaint コマンド生成 */
+function genLrCmd() {
+  var x    = parseInt(document.getElementById('lr-x').value)||0;
+  var y    = parseInt(document.getElementById('lr-y').value)||0;
+  var w    = parseInt(document.getElementById('lr-w').value)||200;
+  var h    = parseInt(document.getElementById('lr-h').value)||80;
+  var inp  = (document.getElementById('lr-input-path') ||{}).value  || 'input.mp4';
+  var out  = (document.getElementById('lr-output-path')||{}).value  || 'output.mp4';
+  var lblEl= document.getElementById('lr-cmd-lbl');
+  var cmdEl= document.getElementById('lr-cmd');
+  var cmd  = '';
+
+  if (_lrMode === 'delogo') {
+    if (lblEl) lblEl.textContent = 'FFmpegコマンド (delogo — 周辺ピクセルで自然に補完):';
+    cmd = 'ffmpeg -i "' + inp + '" \\\n' +
+          '  -vf "delogo=x=' + x + ':y=' + y + ':w=' + w + ':h=' + h + ':show=0" \\\n' +
+          '  -c:a copy "' + out + '"';
+  } else if (_lrMode === 'blur') {
+    if (lblEl) lblEl.textContent = 'FFmpegコマンド (blur — ぼかし処理):';
+    cmd = 'ffmpeg -i "' + inp + '" \\\n' +
+          '  -vf "split[main][blur];' +
+          '[blur]crop=' + w + ':' + h + ':' + x + ':' + y + ',boxblur=15:5[blurred];' +
+          '[main][blurred]overlay=' + x + ':' + y + '" \\\n' +
+          '  -c:a copy "' + out + '"';
+  } else if (_lrMode === 'black') {
+    if (lblEl) lblEl.textContent = 'FFmpegコマンド (blackout — 黒塗りつぶし):';
+    cmd = 'ffmpeg -i "' + inp + '" \\\n' +
+          '  -vf "drawbox=x=' + x + ':y=' + y + ':w=' + w + ':h=' + h + ':color=black:t=fill" \\\n' +
+          '  -c:a copy "' + out + '"';
+  } else if (_lrMode === 'iopaint') {
+    if (lblEl) lblEl.textContent = 'IOPaint AI — フレームを選択してプレビュー、またはバッチスクリプトを生成:';
+    cmd = '# 「AI除去プレビュー」ボタンで現在フレームをIOPaint APIに送信\n' +
+          '# 「バッチ処理スクリプト生成」ボタンで動画全体のPythonスクリプトを生成\n\n' +
+          '# IOPaint サーバー起動コマンド:\n' +
+          'iopaint start --model=lama --device=cpu --port=8081\n\n' +
+          '# 接続テスト:\n' +
+          'curl http://localhost:8081/api/v1/server-config';
+  }
+
+  if (cmdEl) cmdEl.textContent = cmd;
+}
+
+// ═══════════════════════════════════════════
+// GLOBAL ERROR HANDLING — V-Genesis v5
+// ═══════════════════════════════════════════
+window.addEventListener('error', function(e) {
+  var msg = '[JS] ' + (e.message||'不明なエラー') + ' (' + (e.filename||'').split('/').pop() + ':' + e.lineno + ')';
+  logError(msg);
+});
+window.addEventListener('unhandledrejection', function(e) {
+  var msg = '[Promise] ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
+  logError(msg);
+  e.preventDefault();
+});
+
+function safeRun(fn, label) {
+  try { return fn(); }
+  catch(e) {
+    logError('[' + (label||'fn') + '] ' + e.message);
+    return null;
+  }
+}
+
+// init時のlocalStorageリカバリー
+function recoverStorage() {
+  var keys = ['vp4_state','vp4_api_key','vp4_proxy_url','vp4_beginner'];
+  keys.forEach(function(k) {
+    try {
+      var v = localStorage.getItem(k);
+      if (v) JSON.parse(v); // validate JSON
+    } catch(e) {
+      localStorage.removeItem(k);
+      logError('[Storage] ' + k + ' が破損していたため削除しました');
+    }
+  });
+}
+
 // ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
 (function init() {
+  recoverStorage();
   // Load saved state
   var hasState = loadState();
 
@@ -2276,10 +3764,11 @@ document.addEventListener('keydown', function(e) {
     document.body.classList.add('beginner-mode');
   }
 
-  // API key status
+  // API key status — キー値はフィールドに入れない（セキュリティ対策）
   updateApiStatus();
   if (getApiKey()) {
-    document.getElementById('api-key-input').value = getApiKey();
+    var hint = document.getElementById('api-key-set-hint');
+    if (hint) hint.style.display = 'block';
   }
   if (getProxyUrl()) {
     document.getElementById('proxy-url-input').value = getProxyUrl();
@@ -2296,8 +3785,16 @@ document.addEventListener('keydown', function(e) {
   onCfg();
   syncAll();
   updDurDisp();
+
+  // VOICEVOX ローカル接続確認
+  checkVV();
+  setInterval(checkVV, 30000);
+
+  // Media Library init
+  // IndexedDB からメディア読み込み
+  loadMediaDB().then(function(){ safeRun(function(){ renderMedia('all'); }, 'media-init'); }).catch(function(e){ logError('[IDB] load: ' + e.message); });
 })();
 </script>
 </body>
 </html>
-<!-- VIDEO PIPELINE v4 | V-Genesis System | 2026-04-08 -->
+<!-- V-Genesis v5 | AI動画制作システム | 2026-04-08 -->
