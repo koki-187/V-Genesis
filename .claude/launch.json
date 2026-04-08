@@ -1,4 +1,17 @@
 {
   "version": "0.0.1",
-  "configurations": []
+  "configurations": [
+    {
+      "name": "v4-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:\\Users\\reale\\AppData\\Local\\Temp\\vp4\\serve.js"],
+      "port": 8765
+    },
+    {
+      "name": "v3-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:\\Users\\reale\\AppData\\Local\\Temp\\vp4\\serve-v3.js"],
+      "port": 8764
+    }
+  ]
 }

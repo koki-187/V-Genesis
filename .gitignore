@@ -8,9 +8,12 @@ projects/*/raw-footage/
 projects/*/export/
 projects/*/analytics/post-publish.md
 
-# Secrets
+# Secrets — 絶対にコミットしない
 .env
+.env/
+*.env
 *.env.local
+*.env.production
 config/secrets.yaml
 .claude/mcp-secrets.json
 
