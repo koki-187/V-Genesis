@@ -1,0 +1,43 @@
+storyboard:
+  project_id: ""
+  version: "1.0"
+
+  scenes:
+    - scene_id: 1
+      timestamp: "00:00"
+      type: hook
+      description: ""
+      visual:
+        shot_type: ""  # close-up / wide / medium / screen-record
+        camera_angle: ""
+        background: ""
+        on_screen_text: ""
+      audio:
+        narration: ""
+        bgm: ""
+        sfx: ""
+      notes: ""
+
+    - scene_id: 2
+      timestamp: "00:30"
+      type: intro
+      description: ""
+      visual:
+        shot_type: ""
+        camera_angle: ""
+        background: ""
+        on_screen_text: ""
+      audio:
+        narration: ""
+        bgm: ""
+        sfx: ""
+      notes: ""
+
+  transitions:
+    default: cut
+    options: [cut, fade, dissolve, wipe]
+
+  style:
+    color_grade: ""
+    lower_thirds: true
+    captions: true

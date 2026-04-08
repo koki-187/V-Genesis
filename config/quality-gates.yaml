@@ -1,0 +1,35 @@
+quality_gates:
+  global:
+    script_quality_score: 8
+    accessibility_standard: "WCAG 2.1 AA"
+    seo_score: 75
+    thumbnail_ctr_target: 0.05
+
+  per_phase:
+    research:
+      min_score: 7
+      required_outputs:
+        - topic-research.md
+        - keyword-research.md
+    script:
+      min_score: 8
+      required_outputs:
+        - draft-final.md
+    visual:
+      min_score: 8
+      required_outputs:
+        - storyboard.md
+        - thumbnail/concepts.md
+    production:
+      min_score: 7
+      required_outputs:
+        - edit-decision-list.yaml
+    qa:
+      min_score: 8
+      required_outputs:
+        - quality-report.md
+        - accessibility-check.md
+    publish:
+      required_outputs:
+        - metadata.yaml
+        - schedule.yaml

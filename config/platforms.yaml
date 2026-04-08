@@ -1,0 +1,26 @@
+platforms:
+  youtube:
+    name: YouTube
+    max_title_length: 100
+    max_description_length: 5000
+    max_tags: 500
+    recommended_resolution: "1920x1080"
+    upload_api: "youtube.googleapis.com"
+
+  youtube_shorts:
+    name: YouTube Shorts
+    max_duration: 60
+    aspect_ratio: "9:16"
+    recommended_resolution: "1080x1920"
+
+  tiktok:
+    name: TikTok
+    max_duration: 180
+    aspect_ratio: "9:16"
+    max_caption_length: 2200
+
+  instagram_reels:
+    name: Instagram Reels
+    max_duration: 90
+    aspect_ratio: "9:16"
+    max_caption_length: 2200

@@ -1,0 +1,34 @@
+# OS
+desktop.ini
+.DS_Store
+Thumbs.db
+
+# Private project content
+projects/*/raw-footage/
+projects/*/export/
+projects/*/analytics/post-publish.md
+
+# Secrets
+.env
+*.env.local
+config/secrets.yaml
+.claude/mcp-secrets.json
+
+# Temp files
+*.tmp
+*.log
+.omc/state/
+.omc/logs/
+
+# Large media files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wav
+*.mp3
+*.aiff
+
+# Build outputs
+dist/
+output/

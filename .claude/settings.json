@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Read(**)",
+      "Write(**)",
+      "Edit(**)"
+    ],
+    "deny": []
+  },
+  "env": {
+    "V_GENESIS_ROOT": "H:/マイドライブ/★★★プライベート用★★★/V-Genesis",
+    "PIPELINE_VERSION": "1.0",
+    "DEFAULT_LANG": "ja",
+    "TIMEZONE": "Asia/Tokyo"
+  }
+}

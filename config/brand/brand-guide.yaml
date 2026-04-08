@@ -1,0 +1,30 @@
+brand:
+  name: ""
+  tagline: ""
+
+colors:
+  primary: ""
+  secondary: ""
+  accent: ""
+  background: ""
+  text: ""
+
+typography:
+  heading_font: ""
+  body_font: ""
+  accent_font: ""
+
+tone_of_voice:
+  - 親しみやすい
+  - 専門的
+  - わかりやすい
+
+thumbnail_style:
+  background: high_contrast
+  text_overlay: true
+  face_visible: true
+  max_text_words: 5
+
+logo:
+  path: "assets/brand/"
+  formats: [png, svg]

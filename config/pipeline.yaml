@@ -1,0 +1,91 @@
+version: "1.0"
+name: V-Genesis Universal Pipeline
+
+phases:
+  - id: research
+    name: リサーチ
+    agents: [analyst, explore, ux-researcher, document-specialist, scientist]
+    outputs:
+      - topic-research.md
+      - competitor-analysis.md
+      - keyword-research.md
+      - audience-insights.md
+    quality_gate: research_complete
+
+  - id: script
+    name: 脚本
+    agents: [writer, prompter, localization, critic, code-simplifier]
+    inputs: [research]
+    outputs:
+      - outline.md
+      - draft-final.md
+      - narration-notes.md
+    quality_gate: script_approved
+
+  - id: visual
+    name: ビジュアル
+    agents: [designer, accessibility]
+    inputs: [script]
+    outputs:
+      - storyboard.md
+      - shot-list.yaml
+      - asset-list.yaml
+      - thumbnail/concepts.md
+    quality_gate: visual_approved
+
+  - id: production
+    name: 制作
+    agents: [executor, debugger, tracer, optimizer, data-pipeline]
+    inputs: [visual]
+    outputs:
+      - edit-decision-list.yaml
+      - captions/ja.srt
+      - captions/en.srt
+    quality_gate: production_complete
+
+  - id: qa
+    name: 品質管理
+    agents: [qa-tester, code-reviewer, verifier, security-reviewer, compliance, risk-assessor]
+    inputs: [production]
+    outputs:
+      - quality-report.md
+      - accessibility-check.md
+    quality_gate: qa_passed
+
+  - id: publish
+    name: 公開
+    agents: [api-designer, devops, git-master, database]
+    inputs: [qa]
+    outputs:
+      - metadata.yaml
+      - schedule.yaml
+      - distribution.yaml
+    quality_gate: published
+
+  - id: post_publish
+    name: 公開後
+    agents: [monitor, mobile, migrator, refactorer]
+    inputs: [publish]
+    outputs:
+      - analytics/predictions.md
+      - analytics/post-publish.md
+
+quality_gates:
+  research_complete:
+    required_files: [topic-research.md, keyword-research.md]
+    min_score: 7
+  script_approved:
+    required_files: [draft-final.md]
+    min_score: 8
+  visual_approved:
+    required_files: [storyboard.md, thumbnail/concepts.md]
+    min_score: 8
+  production_complete:
+    required_files: [edit-decision-list.yaml]
+    min_score: 7
+  qa_passed:
+    required_files: [quality-report.md, accessibility-check.md]
+    min_score: 8
+    accessibility: "WCAG 2.1 AA"
+  published:
+    required_files: [metadata.yaml, schedule.yaml]

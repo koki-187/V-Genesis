@@ -1,0 +1,46 @@
+types:
+  explainer_long:
+    name: 解説動画（長尺）
+    duration: "10-30min"
+    aspect_ratio: "16:9"
+    platform: youtube
+    script_structure:
+      - hook (30sec)
+      - intro (2min)
+      - main_content (varies)
+      - summary (2min)
+      - cta (1min)
+    thumbnail:
+      recommended_style: high_contrast_text
+      ctr_target: 0.05
+
+  explainer_short:
+    name: 解説動画（短尺）
+    duration: "1-3min"
+    aspect_ratio: "16:9"
+    platform: youtube
+    script_structure:
+      - hook (15sec)
+      - main_point (60sec)
+      - cta (15sec)
+
+  shorts:
+    name: ショート動画
+    duration: "15-60sec"
+    aspect_ratio: "9:16"
+    platform: [youtube_shorts, tiktok, instagram_reels]
+    script_structure:
+      - hook (3sec)
+      - value (50sec)
+      - cta (7sec)
+
+  promo:
+    name: プロモーション動画
+    duration: "30sec-3min"
+    aspect_ratio: "16:9"
+    platform: [youtube, instagram]
+    script_structure:
+      - problem (15sec)
+      - solution (30sec)
+      - proof (30sec)
+      - cta (15sec)
