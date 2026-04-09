@@ -568,6 +568,17 @@ body.beginner-mode .pro-only{display:none;}
 
 <!-- API KEY MODAL removed — ENV injection via serve.js -->
 
+<!-- ═══ 画像プレビューモーダル ═══ -->
+<div class="modal-overlay" id="modal-img-preview" onclick="closeModal('modal-img-preview')" style="z-index:9999;">
+  <div style="max-width:90vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;gap:10px;" onclick="event.stopPropagation()">
+    <img id="modal-img-src" src="" style="max-width:85vw;max-height:80vh;border-radius:8px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.8);">
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-g" onclick="closeModal('modal-img-preview')" style="font-size:12px;">閉じる</button>
+      <button class="btn btn-p" id="modal-img-dl" onclick="" style="font-size:12px;">&#8595; ダウンロード</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ CUSTOM CLIP MODAL (v4) ═══ -->
 <div class="modal-overlay" id="modal-clip">
   <div class="modal">
@@ -1861,6 +1872,23 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('show');
 }
 
+// 画像プレビューモーダルを開く
+function previewMedia(blobUrl, fileName) {
+  var img = document.getElementById('modal-img-src');
+  var dlBtn = document.getElementById('modal-img-dl');
+  if (!img) return;
+  img.src = blobUrl;
+  if (dlBtn) {
+    dlBtn.onclick = function() {
+      var a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName || ('preview_' + Date.now() + '.jpg');
+      a.click();
+    };
+  }
+  openModal('modal-img-preview');
+}
+
 // ════════════════════════════════════════
 // LOCALSTORAGE STATE PERSISTENCE (v4 new — fix #14)
 // ════════════════════════════════════════
@@ -2350,14 +2378,36 @@ function renderTL() {
     return;
   }
   var sec = 0;
-  var html = '';
+  tr.innerHTML = '';
   S.clips.forEach(function(c, i) {
     sec += parseInt(c.dur) || 10;
-    html += '<div class="tlc">' + c.name.replace('.mp4', '') +
-      '<span style="color:var(--c3);font-size:9px;margin-left:4px;">' + c.dur + '</span>' +
-      '<span onclick="event.stopPropagation();removeClip(' + i + ')" style="margin-left:5px;color:var(--red);cursor:pointer;opacity:.7;">x</span></div>';
+    var div = document.createElement('div');
+    div.className = 'tlc';
+    div.style.cssText = 'position:relative;display:flex;flex-direction:column;min-width:80px;';
+    // サムネイル（画像クリップ）
+    if (c.mediaId && mediaBlobMap[c.mediaId]) {
+      var img = document.createElement('img');
+      img.src = mediaBlobMap[c.mediaId];
+      img.style.cssText = 'width:100%;height:50px;object-fit:cover;border-radius:3px;margin-bottom:3px;cursor:pointer;';
+      img.title = 'クリックでプレビュー';
+      img.onclick = (function(burl){ return function(){ previewMedia(burl); }; })(mediaBlobMap[c.mediaId]);
+      div.appendChild(img);
+    }
+    var label = document.createElement('div');
+    label.style.cssText = 'font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;';
+    label.textContent = c.name.replace(/\.[^.]+$/, '');
+    var durSpan = document.createElement('span');
+    durSpan.style.cssText = 'color:var(--c3);font-size:9px;margin-left:3px;';
+    durSpan.textContent = c.dur;
+    var delBtn = document.createElement('span');
+    delBtn.style.cssText = 'position:absolute;top:2px;right:2px;color:var(--red,#e74c3c);cursor:pointer;font-size:12px;line-height:1;';
+    delBtn.textContent = '×';
+    delBtn.onclick = function(e){ e.stopPropagation(); removeClip(i); };
+    div.appendChild(label);
+    div.appendChild(durSpan);
+    div.appendChild(delBtn);
+    tr.appendChild(div);
   });
-  tr.innerHTML = html;
   tot.textContent = '合計: ' + sec + '秒 (' + S.clips.length + 'c)';
 }
 
@@ -2955,11 +3005,12 @@ function genImages() {
           var card = document.createElement('div');
           card.className = 'img-result';
           var ratio = imgW + 'x' + imgH;
+          var fn = 'AI画像_' + (idx+1) + '_' + seed + '.jpg';
           card.innerHTML = ''
-            + '<img src="' + objUrl + '" loading="lazy" onclick="this.requestFullscreen && this.requestFullscreen()" title="クリックで拡大" style="width:100%;border-radius:6px;cursor:zoom-in;display:block;">'
+            + '<img src="' + objUrl + '" loading="lazy" onclick="previewMedia(\'' + objUrl + '\',\'' + fn + '\')" title="クリックでプレビュー" style="width:100%;border-radius:6px;cursor:zoom-in;display:block;">'
             + '<div style="display:flex;gap:5px;margin-top:6px;">'
             +   '<button class="btn btn-g" style="flex:1;font-size:11px;padding:5px 4px;" onclick="downloadImg(\'' + objUrl + '\',' + idx + ')">&#8595; DL</button>'
-            +   '<button class="btn btn-p" style="flex:1;font-size:11px;padding:5px 4px;" onclick="addImgToTimeline(\'' + objUrl + '\',' + idx + ')">+ タイムライン</button>'
+            +   '<button class="btn btn-p" style="flex:1;font-size:11px;padding:5px 4px;" onclick="addImgToTimeline(\'' + objUrl + '\',' + idx + ')">&#128190; 保存・使用</button>'
             + '</div>'
             + '<div style="font-size:10px;color:var(--tx2);margin-top:3px;text-align:center;">' + ratio + ' / FLUX / seed:' + seed + '</div>';
           grid.children[idx] ? grid.children[idx].replaceWith(card) : grid.appendChild(card);
@@ -2993,8 +3044,36 @@ function downloadImg(url, idx) {
 }
 
 function addImgToTimeline(url, idx) {
-  addClip('AI_IMAGE_' + (idx + 1) + '.jpg', '5s');
-  toast('画像クリップをタイムラインに追加しました（5秒）', 'success', 2500);
+  var name = 'AI画像_' + (idx + 1) + '_' + Date.now() + '.jpg';
+  // blob をfetchしてIndexedDBに永続保存
+  fetch(url)
+    .then(function(r) { return r.blob(); })
+    .then(function(blob) {
+      var id = 'ai_img_' + Date.now() + '_' + idx;
+      var item = { id: id, name: name, type: 'image/jpeg', cat: 'image', size: blob.size, dur: 5 };
+      // メディアライブラリに登録
+      mediaBlobMap[id] = url; // 既存のobjectURLを再利用
+      mediaStore.push(item);
+      saveMediaItem(item, blob); // IndexedDBに永続保存
+      renderMedia(_mediaCat);
+      // タイムラインに追加（mediaId付きで画像サムネイル表示）
+      if (S.clips.some(function(c){ return c.name === name; })) {
+        toast('この画像は追加済みです', 'warn'); return;
+      }
+      S.clips.push({ name: name, dur: '5s', ratio: '', mediaId: id });
+      renderTL();
+      updStats();
+      document.getElementById('btn-s4').disabled = false;
+      var badge = document.getElementById('tl-badge');
+      badge.style.display = '';
+      badge.textContent = S.clips.length + 'クリップ';
+      toast('画像をメディアライブラリとタイムラインに保存しました', 'success', 3000);
+      saveState();
+    })
+    .catch(function(err) {
+      logError('[画像保存] ' + err.message);
+      toast('画像の保存に失敗しました: ' + err.message, 'error', 4000);
+    });
 }
 
 // ════════════════════════════════════════════════════════════
