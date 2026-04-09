@@ -666,9 +666,10 @@ body.beginner-mode .now-action{display:flex;}
     <div class="pill p-ai"><div class="dot"></div>Claude API</div>
   </div>
   <div class="mode-toggle">
-    <span>PRO</span>
+    <span id="mode-label-pro" style="font-size:10px;transition:opacity .2s;">詳細</span>
     <div class="sw" id="mode-sw" onclick="toggleMode()" title="ビギナーモード切替"></div>
-    <span>EASY</span>
+    <span id="mode-label-easy" style="font-size:10px;transition:opacity .2s;">かんたん</span>
+    <span id="mode-current-label" style="font-size:10px;color:var(--acc);margin-left:4px;font-weight:600;"></span>
   </div>
   <div id="cd-top">計算中...</div>
 </div>
@@ -773,15 +774,36 @@ body.beginner-mode .now-action{display:flex;}
     <div class="sh-su">ブランド・用途・テーマを選ぶだけで次ステップが自動準備されます</div>
   </div>
   <div class="sb">
-    <div class="now-action"><span class="now-action-icon">①</span><div class="now-action-text"><strong>まずここから始めましょう</strong>左の「ブランド」ボタンを押して、次に「次へ：プロンプト生成 →」ボタンを押してください。それだけでOKです！</div></div>
-    <div class="beginner-hint">ここでは動画の基本情報を設定します。「ブランド」で誰向けの動画か、「用途」でどのSNSに投稿するか、「シーンタイプ」でどんな映像にするかを選んでください。</div>
+    <div class="now-action"><span class="now-action-icon">①</span><div class="now-action-text"><strong>まずここから始めましょう</strong>『ブランド』ドロップダウンからあなたのビジネスに近いものを選んでください（なければ「カスタム」を選んで業種を入力）。次に『次へ：プロンプト生成 →』ボタンを押してください。それだけでOKです！</div></div>
+    <div class="beginner-hint">ここでは動画の基本情報を設定します。『ブランド』で誰向けの動画か、『用途』でどのSNSに投稿するか、『シーンタイプ』でどんな映像にするかを選んでください。カスタムを選べば自分のビジネス名とターゲット層を自由に入力できます。</div>
     <div class="card">
+      <div class="api-key-setup-row" style="margin-bottom:14px;padding:10px 12px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.2);border-radius:6px;">
+        <div style="font-size:11px;color:var(--acc);margin-bottom:6px;font-weight:600;">🔑 Claude APIキー <span style="font-weight:400;color:var(--fg2);font-size:10px;">（省略可 — 未設定でもプリセットで動作します）</span></div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="password" id="api-key-input" placeholder="sk-ant-..."
+            style="flex:1;background:var(--s2);border:1px solid var(--bdr);border-radius:4px;padding:6px 10px;font-family:var(--mon);font-size:11px;color:var(--fg);outline:none;"
+            oninput="updateApiKeyPreview(this.value)">
+          <button onclick="saveApiKey()" class="btn" style="font-size:11px;padding:5px 12px;white-space:nowrap;">設定する</button>
+          <span id="api-key-status" style="font-size:10px;color:var(--fg2);white-space:nowrap;"></span>
+        </div>
+      </div>
       <div class="r3">
         <div class="col"><label class="lbl">ブランド <span class="tip" data-tip="動画を作るブランド。&#10;スカルプインク=頭皮ケアサービス&#10;My Agent PRO=不動産サービス">?</span></label>
           <select id="cfg-brand" onchange="onCfg()">
             <option value="scalp">スカルプインク（SMP）</option>
             <option value="agent">My Agent PRO（不動産）</option>
-          </select></div>
+            <option value="custom">✏️ カスタム（自分で入力）</option>
+          </select>
+          <div id="custom-brand-area" style="display:none;margin-top:8px;padding:10px;background:rgba(255,255,255,.04);border-radius:4px;border:1px solid var(--bdr);">
+            <div style="font-size:10px;color:var(--fg2);margin-bottom:6px;">あなたのビジネス情報を入力してください</div>
+            <input type="text" id="custom-brand-name" placeholder="例：田中美容院、山田不動産、ABC歯科"
+              style="width:100%;box-sizing:border-box;background:var(--s2);border:1px solid var(--bdr);border-radius:4px;padding:6px 10px;font-size:11px;color:var(--fg);outline:none;margin-bottom:6px;"
+              oninput="applyCustomBrand()">
+            <input type="text" id="custom-brand-target" placeholder="例：30代女性、近隣在住の方、会社員"
+              style="width:100%;box-sizing:border-box;background:var(--s2);border:1px solid var(--bdr);border-radius:4px;padding:6px 10px;font-size:11px;color:var(--fg);outline:none;"
+              oninput="applyCustomBrand()">
+            <div style="font-size:9px;color:var(--fg2);margin-top:4px;">↑ ビジネス名 / ターゲット層</div>
+          </div></div>
         <div class="col"><label class="lbl">動画用途 <span class="tip" data-tip="投稿先のSNSやWebサイト。&#10;比率やサイズが自動設定されます。">?</span></label>
           <select id="cfg-purpose" onchange="onCfg()">
             <option value="reel">Instagram Reel（9:16）</option>
@@ -911,7 +933,7 @@ body.beginner-mode .now-action{display:flex;}
     <div class="sh-su">プロンプトをコピーして各ツールで生成 &rarr; タイムラインに追加</div>
   </div>
   <div class="sb">
-    <div class="now-action"><span class="now-action-icon">③</span><div class="now-action-text"><strong>AI画像を生成して素材を作りましょう</strong>「AI画像を生成」ボタンで無料の画像素材が作れます。生成後「保存・使用」を押すとタイムラインに追加されます。動画ツールをお持ちの方はプロンプトをコピーして各ツールで生成してください。</div></div>
+    <div class="now-action"><span class="now-action-icon">③</span><div class="now-action-text"><strong>動画素材を用意する3つの方法：</strong><br>① <b>AI画像を生成</b>する → 「AI画像生成」から生成し「保存・使用」ボタンでタイムラインに追加<br>② <b>動画ファイルをアップロード</b>する → 左サイドバー「メディアライブラリ」からファイルを選択してタイムラインに追加<br>③ <b>外部AIツールで動画を生成</b>する → Sora/Kling等で生成 → PCに保存 → メディアライブラリにアップロード → タイムラインに追加</div></div>
     <div class="beginner-hint">左のプロンプトをコピーして、Sora・Veo・Kling AIなどの動画生成ツールで動画を作ります。作ったら下のタイムラインにクリップを追加してください。</div>
     <div class="alert a-warn">Soraは残り <strong id="s3-days">---</strong> 日。最優先で素材を生成してください。</div>
     <div class="card">
@@ -1062,7 +1084,7 @@ body.beginner-mode .now-action{display:flex;}
     <div class="sh-su">出力サイズ・尺・品質を選ぶとFFmpegコマンドが自動生成されます</div>
   </div>
   <div class="sb">
-    <div class="beginner-hint">出力したい動画のサイズ、長さ、品質を設定します。設定するとFFmpegコマンド（動画変換の命令）が自動で作られます。それをコピーしてPowerShellで実行します。</div>
+    <div class="beginner-hint">出力したい動画のサイズ、長さ、品質を設定します。「動画を変換する」ボタンを押せば自動で変換されます（serve.js起動済みの場合）。serve.jsが起動していない場合はDaVinci Resolveから書き出してください。</div>
 
     <!-- ═ VISUAL TIMELINE ═ -->
     <div class="card" style="margin-bottom:10px;">
@@ -1574,7 +1596,7 @@ body.beginner-mode .now-action{display:flex;}
     </div><!-- /TWO-COLUMN -->
 
     <!-- OUTPUT COMMAND PANEL -->
-    <div class="card">
+    <div class="card pro-only">
       <div class="cl">4. FFmpegコマンド生成 <span class="badge b-ai">自動更新</span></div>
       <div class="otabs">
         <div class="otab active" onclick="switchOT(this,'ot-single')">単体出力</div>
@@ -1870,8 +1892,15 @@ var S = {
 
 var brands = {
   scalp:{ name:'スカルプインク（SMP）', tgt:'薄毛・薄毛進行に悩む30〜50代男性' },
-  agent:{ name:'My Agent PRO（不動産）', tgt:'投資不動産・資産管理・相続を検討する40〜60代' }
+  agent:{ name:'My Agent PRO（不動産）', tgt:'投資不動産・資産管理・相続を検討する40〜60代' },
+  custom:{ name:'カスタムブランド', tgt:'一般ユーザー', tone:'フレンドリー・親しみやすい', col:'#00c8ff', keywords:[] }
 };
+function applyCustomBrand() {
+  var name = (document.getElementById('custom-brand-name').value.trim()) || 'カスタムブランド';
+  var tgt = (document.getElementById('custom-brand-target').value.trim()) || '一般ユーザー';
+  brands['custom'] = { name: name, tgt: tgt, tone: 'フレンドリー・親しみやすい', col: '#00c8ff', keywords: [] };
+  onCfg();
+}
 
 // ════════════════════════════════════════
 // TOAST SYSTEM (v4 new — replaces all alert() calls)
@@ -2012,6 +2041,34 @@ function updateApiStatus() {
     lbl.textContent = '未設定';
   }
 }
+function saveApiKey() {
+  var val = document.getElementById('api-key-input').value.trim();
+  if (!val) { toast('APIキーを入力してください', 'warn', 3000); return; }
+  if (!val.startsWith('sk-ant-')) { toast('Claude APIキーは sk-ant- で始まります', 'warn', 4000); return; }
+  try {
+    localStorage.setItem('vp4_api_key', val);
+    document.getElementById('api-key-status').textContent = '✓ 設定済';
+    document.getElementById('api-key-status').style.color = 'var(--grn)';
+    document.getElementById('api-key-input').value = '';
+    updateApiStatus();
+    toast('APIキーを保存しました', 'success', 3000);
+  } catch(e) { toast('保存失敗: ' + e.message, 'error', 4000); }
+}
+function updateApiKeyPreview(val) {
+  var st = document.getElementById('api-key-status');
+  if (!st) return;
+  if (val && val.startsWith('sk-ant-')) {
+    st.textContent = '✓ 形式OK';
+    st.style.color = 'var(--grn)';
+  } else if (val) {
+    st.textContent = '形式が違います';
+    st.style.color = 'var(--red)';
+  } else {
+    var saved = localStorage.getItem('vp4_api_key');
+    if (saved) { st.textContent = '✓ 設定済'; st.style.color = 'var(--grn)'; }
+    else { st.textContent = ''; }
+  }
+}
 
 // ════════════════════════════════════════
 // MODAL UTILS (v4 new)
@@ -2126,7 +2183,21 @@ function gs(id) {
   // Stage-specific data sync
   if (id === 's3' && S.genP) document.getElementById('s3-pb').textContent = S.genP;
   if (id === 's3') renderImgChips();
-  if (id === 's4' && S.genN) document.getElementById('s4-nar').value = S.genN;
+  if (id === 's4') {
+    var narEl = document.getElementById('s4-nar');
+    if (narEl && !narEl.value) {
+      var narText = S.genN || '';
+      if (!narText) {
+        var outNr = document.getElementById('out-nr');
+        if (outNr) narText = outNr.value || outNr.textContent || '';
+        if (narText === '---') narText = '';
+      }
+      if (narText) {
+        narEl.value = narText;
+        toast('ナレーション原稿をSTEP2から自動入力しました', 'info', 3000);
+      }
+    }
+  }
   if (id === 's5') syncAll();
 
   saveState();
@@ -2161,6 +2232,9 @@ function onCfg() {
   S.scene = document.getElementById('cfg-scene').value;
   S.tone = document.getElementById('cfg-tone').value;
   S.kw = document.getElementById('cfg-kw').value;
+  // カスタムブランドエリアの表示切替
+  var customArea = document.getElementById('custom-brand-area');
+  if (customArea) customArea.style.display = (S.brand === 'custom') ? 'block' : 'none';
   var b = brands[S.brand];
   var pu = { reel: 'Instagram Reel（9:16）', lp: 'LP横動画（16:9）', youtube: 'YouTube（16:9）', story: 'Story縦動画（9:16）' };
   document.getElementById('cfg-preview').innerHTML =
@@ -2211,7 +2285,7 @@ function genAll() {
 
   // v4 fix #1: Check API key before calling
   if (!apiKey) {
-    toast('APIキーが未設定です。プリセットを読み込みます。', 'warn');
+    toast('APIキーが未設定です。プリセットを読み込みます。', 'warn', 6000);
     logError('API呼び出し失敗: APIキー未設定 → プリセットにフォールバック');
     loadPreset(true);
     return;
@@ -2332,6 +2406,7 @@ function genAll() {
     setAIO('out-seo-desc',  false, genSeoDesc  || '---');
     setAIO('out-seo-tags',  false, genSeoTags  || '---');
     document.getElementById('btn-s3').disabled = false;
+    document.querySelectorAll('.preset-badge').forEach(function(b){ b.remove(); });
     toast('AI生成が完了しました', 'success');
     saveState();
   }).catch(function(err) {
@@ -2377,6 +2452,18 @@ function setAIO(id, loading, text) {
   el.classList.toggle('loading', loading);
   if (!loading) el.textContent = text || '---';
   else el.textContent = '';
+}
+
+function showPresetBadge(el) {
+  if (!el) return;
+  var parent = el.parentNode;
+  if (parent && !parent.querySelector('.preset-badge')) {
+    var badge = document.createElement('div');
+    badge.className = 'preset-badge';
+    badge.textContent = '📋 プリセット（見本）— AIが未生成です';
+    badge.style.cssText = 'font-size:10px;color:var(--yel);background:rgba(255,179,0,.12);border:1px solid rgba(255,179,0,.3);border-radius:4px;padding:3px 8px;margin-bottom:6px;';
+    parent.insertBefore(badge, el);
+  }
 }
 
 // ── プリセット＆テンプレートデータ ────────────────────────────────
@@ -2443,6 +2530,10 @@ function loadPreset(fb) {
   setAIO('out-seo-tags',  false, d.seo.tags);
   document.getElementById('btn-s3').disabled = false;
   if (!fb) toast('プリセットを読み込みました', 'info');
+  showPresetBadge(document.getElementById('out-vp'));
+  showPresetBadge(document.getElementById('out-nr'));
+  showPresetBadge(document.getElementById('out-ov'));
+  showPresetBadge(document.getElementById('out-mt'));
   renderTemplateChips();
   saveState();
 }
@@ -3459,7 +3550,17 @@ function toggleMode() {
   document.body.classList.toggle('beginner-mode');
   var isBeginner = sw.classList.contains('on');
   localStorage.setItem('vp4_beginner', isBeginner ? '1' : '0');
+  updateModeLabels();
   toast(isBeginner ? 'ビギナーモード ON：各ステップにガイドが表示されます' : 'プロモード ON：ガイドを非表示にしました', 'info');
+}
+function updateModeLabels() {
+  var isEasy = document.getElementById('mode-sw').classList.contains('on');
+  var proLbl = document.getElementById('mode-label-pro');
+  var easyLbl = document.getElementById('mode-label-easy');
+  var curLbl = document.getElementById('mode-current-label');
+  if (proLbl) proLbl.style.opacity = isEasy ? '0.35' : '1';
+  if (easyLbl) easyLbl.style.opacity = isEasy ? '1' : '0.35';
+  if (curLbl) curLbl.textContent = '(現在)';
 }
 
 // ════════════════════════════════════════
@@ -4743,6 +4844,10 @@ function recoverStorage() {
 
   // API key status (ENV injection, no modal)
   updateApiStatus();
+  // APIキー入力欄の初期状態表示
+  updateApiKeyPreview('');
+  // モードラベル初期化
+  updateModeLabels();
 
   // テンプレートチップ初期化
   renderTemplateChips();
