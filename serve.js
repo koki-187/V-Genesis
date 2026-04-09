@@ -122,6 +122,49 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ── API: Claude APIプロキシ (CORSバイパス) ──
+  if (req.url === '/api/claude' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      const apiKey = ENV.ANTHROPIC_API_KEY;
+      if (!apiKey) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'API key not configured in .env' }));
+        return;
+      }
+      const https = require('https');
+      const postData = body;
+      const options = {
+        hostname: 'api.anthropic.com',
+        path: '/v1/messages',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      };
+      const apiReq = https.request(options, apiRes => {
+        let data = '';
+        apiRes.on('data', chunk => data += chunk);
+        apiRes.on('end', () => {
+          res.writeHead(apiRes.statusCode, { 'Content-Type': 'application/json' });
+          res.end(data);
+        });
+      });
+      apiReq.on('error', err => {
+        console.error('[Claude API] Proxy error:', err.message);
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Proxy error: ' + err.message }));
+      });
+      apiReq.write(postData);
+      apiReq.end();
+    });
+    return;
+  }
+
   // ── 静的ファイル配信 (PWA対応) ──
   let urlPath = req.url.split('?')[0];
   if (urlPath === '/' || urlPath === '/index.html') {

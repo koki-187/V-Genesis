@@ -384,6 +384,12 @@ textarea:focus{border-color:var(--acc);}
   background:var(--s2);border:1px solid var(--ln);cursor:pointer;font-size:11px;
   color:var(--c2);transition:all .14s;margin-bottom:4px;width:100%;}
 .qab:hover{border-color:var(--acc);color:var(--acc);}
+.tpl-chips{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px;}
+.tpl-chip{padding:3px 8px;border-radius:12px;font-size:10px;font-family:var(--san);
+  background:var(--s3);border:1px solid var(--ln2);color:var(--c2);cursor:pointer;
+  transition:all .15s;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+.tpl-chip:hover{border-color:var(--acc);color:var(--acc);background:rgba(0,200,255,.08);}
+.tpl-chip.active{border-color:var(--acc);color:var(--acc);background:rgba(0,200,255,.12);}
 .stat-g{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px;}
 .stat{background:var(--s2);border:1px solid var(--ln);border-radius:5px;padding:8px 9px;text-align:center;}
 .sv2{font-family:var(--mon);font-size:20px;font-weight:600;color:var(--acc);line-height:1.1;}
@@ -808,6 +814,7 @@ body.beginner-mode .pro-only{display:none;}
           <label class="lbl" style="margin:0;">&#128293; 冒頭3秒フック文 <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">Instagram/TikTok視聴維持率↑</span></label>
           <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-hook')">コピー</button>
         </div>
+        <div class="tpl-chips" id="hook-chips"></div>
         <div id="out-hook" class="aio empty" style="min-height:60px;border-left:2px solid var(--red);">---</div>
       </div>
       <!-- ═ YouTube SEO ═ -->
@@ -816,6 +823,7 @@ body.beginner-mode .pro-only{display:none;}
           <label class="lbl" style="margin:0;">&#128269; YouTube SEO <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">タイトル / 説明文 / タグ</span></label>
           <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-seo')">コピー</button>
         </div>
+        <div class="tpl-chips" id="seo-chips"></div>
         <div id="out-seo" class="aio empty" style="min-height:80px;border-left:2px solid var(--yel);">---</div>
       </div>
     </div>
@@ -1679,7 +1687,7 @@ Write-Host "Setup complete: ffmpeg, node, claude, python"</div>
   </div>
   <!-- v4: Error Log Panel -->
   <div>
-    <div class="rpl">エラーログ</div>
+    <div class="rpl" style="display:flex;align-items:center;justify-content:space-between;">エラーログ<button class="qab" onclick="clearErrorLog()" style="padding:1px 6px;font-size:9px;margin:0;background:var(--s3);">クリア</button></div>
     <div class="error-log" id="error-log">
       <div style="font-family:var(--mon);font-size:9px;color:var(--c3);padding:4px;">エラーはありません</div>
     </div>
@@ -1757,6 +1765,11 @@ function renderErrorLog() {
     return '<div class="error-log-item"><span class="elt">[' + e.time + ']</span>' + e.msg + '</div>';
   }).join('');
   el.scrollTop = el.scrollHeight;
+}
+function clearErrorLog() {
+  errorLogs = [];
+  renderErrorLog();
+  toast('エラーログをクリアしました', 'info');
 }
 
 // ════════════════════════════════════════
@@ -1906,6 +1919,7 @@ function onCfg() {
   var pu = { reel: 'Instagram Reel（9:16）', lp: 'LP横動画（16:9）', youtube: 'YouTube（16:9）', story: 'Story縦動画（9:16）' };
   document.getElementById('cfg-preview').innerHTML =
     '<strong>確認：</strong>' + b.name + ' / ' + pu[S.purpose] + '<br>ターゲット：' + b.tgt;
+  renderTemplateChips();
   saveState();
 }
 
@@ -1973,28 +1987,17 @@ function genAll() {
   var sys = 'あなたはブランド「' + b.name + '」の動画制作AIです。ターゲット：' + b.tgt + '。トーン：' + toneMap[S.tone] + '。\n必ず以下の形式で：\n【動画プロンプト】\n（英語、200語以内、cinematic/photorealistic）\n【ナレーション原稿】\n（日本語、' + S.dur + '秒テンポ）\n【テキストオーバーレイ】\n（5語以内×3枚、改行区切り）\n【BGM・シーン構成メモ】\n（3行以内）\n【冒頭3秒フック文】\n（視聴者を瞬時に引き込む短いキャッチコピー、20文字以内×3パターン）\n【SEOタイトル】\n（YouTubeタイトル60文字以内、検索キーワード含む）\n【SEO説明文】\n（YouTube説明文300文字、最初の2行が重要）\n【SEOタグ】\n（タグ10個カンマ区切り）';
   var user = '用途：' + S.purpose + ' / シーン：' + S.scene + ' / 追加KW：' + (S.kw || 'なし');
 
-  // v4 fix #2: Use proxy URL if set, include API key header
-  var url = proxyUrl || 'https://api.anthropic.com/v1/messages';
-  var headers = {
-    'Content-Type': 'application/json',
-    'x-api-key': apiKey,
-    'anthropic-version': '2023-06-01'
-  };
-  // v4: CORS — if using direct API, add anthropic-dangerous-direct-browser-access header
-  if (!proxyUrl) {
-    headers['anthropic-dangerous-direct-browser-access'] = 'true';
-  }
+  // serve.jsプロキシ経由でCORSバイパス（フォールバック：直接API）
+  var url = '/api/claude';
+  var headers = { 'Content-Type': 'application/json' };
+  var payload = JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1500,
+    system: sys,
+    messages: [{ role: 'user', content: user }]
+  });
 
-  fetch(url, {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      system: sys,
-      messages: [{ role: 'user', content: user }]
-    })
-  }).then(function(r) {
+  fetch(url, { method: 'POST', headers: headers, body: payload }).then(function(r) {
     if (!r.ok) {
       return r.text().then(function(txt) {
         throw new Error('HTTP ' + r.status + ': ' + txt.substring(0, 200));
@@ -2060,22 +2063,56 @@ function setAIO(id, loading, text) {
   else el.textContent = '';
 }
 
-function loadPreset(fb) {
-  var p = {
-    scalp: {
-      video: 'Extreme close-up cinematic shot of scalp micropigmentation artist working with precise needle strokes. Ultra-realistic skin texture, warm studio lighting, shallow depth of field. Natural hairline forming. 4K photorealistic, 9:16 vertical.',
-      narration: '薄毛の悩み、もう一人で抱え込まなくていい。\nスカルプインクは、天然色素で自然な髪の毛を再現する技術です。\n施術翌日から、鏡を見るのが楽しみに変わります。\nまずは無料相談から。',
-      overlay: 'あなたは一人じゃない\n自然な仕上がりに感動\n無料相談 受付中',
-      meta: 'BGM：Warm Ambient / 70-80BPM\nシーン：CU（4s）→BA（6s）→表情（3s）→CTA（2s）'
-    },
-    agent: {
-      video: 'Smooth cinematic gimbal shot of premium Tokyo residential property at golden hour. Floor-to-ceiling windows, minimalist interior, city skyline. Professional real estate cinematography. 4K, 16:9.',
-      narration: '理想の不動産との出会いを、エージェントが責任を持ってサポートします。\n18年の実績と最新AIデータ分析で、あなたの資産を最大化。\nMy Agent PRO — 今すぐ無料相談を。',
-      overlay: '18年の実績と信頼\nAI分析で最適提案\n今すぐ無料相談',
-      meta: 'BGM：Professional Cinematic / 60-70BPM\nシーン：外観（5s）→室内（15s）→エージェント（5s）→CTA（5s）'
+// ── プリセット＆テンプレートデータ ────────────────────────────────
+var PRESETS = {
+  scalp: {
+    video: 'Extreme close-up cinematic shot of scalp micropigmentation artist working with precise needle strokes. Ultra-realistic skin texture, warm studio lighting, shallow depth of field. Natural hairline forming. 4K photorealistic, 9:16 vertical.',
+    narration: '薄毛の悩み、もう一人で抱え込まなくていい。\nスカルプインクは、天然色素で自然な髪の毛を再現する技術です。\n施術翌日から、鏡を見るのが楽しみに変わります。\nまずは無料相談から。',
+    overlay: 'あなたは一人じゃない\n自然な仕上がりに感動\n無料相談 受付中',
+    meta: 'BGM：Warm Ambient / 70-80BPM\nシーン：CU（4s）→BA（6s）→表情（3s）→CTA（2s）',
+    hooks: [
+      '「薄毛、もう隠さなくていい」',
+      '「この技術、知らなきゃ損です」',
+      '「たった3時間で人生変わった」',
+      '「30代で諦めるのは早すぎる」',
+      '「施術翌日、鏡が好きになった」'
+    ],
+    seo: {
+      titles: [
+        '【薄毛治療の新常識】スカルプインクで自然な髪を取り戻す方法',
+        '【SMP施術】天然色素で自然な髪を再現｜スカルプインク',
+        '【ビフォーアフター】薄毛の悩みを解決するSMP施術の全て'
+      ],
+      desc: '薄毛・AGA・M字ハゲでお悩みの方へ。スカルプインクのSMP（スカルプマイクロピグメンテーション）は天然色素を使用し、自然な毛根を再現する最新技術です。\n\n施術時間わずか3時間。翌日から普通の生活が可能。\n無料カウンセリング受付中。\n\n▼ ご予約・お問い合わせ\nhttps://scalpink.jp/contact',
+      tags: '薄毛,SMP,スカルプマイクロピグメンテーション,AGA,薄毛治療,ヘアタトゥー,スカルプインク,M字ハゲ,薄毛対策,ビフォーアフター'
     }
-  };
-  var d = p[S.brand];
+  },
+  agent: {
+    video: 'Smooth cinematic gimbal shot of premium Tokyo residential property at golden hour. Floor-to-ceiling windows, minimalist interior, city skyline. Professional real estate cinematography. 4K, 16:9.',
+    narration: '理想の不動産との出会いを、エージェントが責任を持ってサポートします。\n18年の実績と最新AIデータ分析で、あなたの資産を最大化。\nMy Agent PRO — 今すぐ無料相談を。',
+    overlay: '18年の実績と信頼\nAI分析で最適提案\n今すぐ無料相談',
+    meta: 'BGM：Professional Cinematic / 60-70BPM\nシーン：外観（5s）→室内（15s）→エージェント（5s）→CTA（5s）',
+    hooks: [
+      '「この物件、明日には売れます」',
+      '「AIが選んだ最適物件とは？」',
+      '「18年のプロが本音で語る」',
+      '「資産価値が上がる物件の条件」',
+      '「不動産選び、失敗する人の共通点」'
+    ],
+    seo: {
+      titles: [
+        '【不動産のプロが解説】資産価値が上がる物件の選び方',
+        '【My Agent PRO】AI分析×18年の経験で最適な物件提案',
+        '【東京不動産】プロが教える失敗しないマンション選び'
+      ],
+      desc: '不動産選びで失敗したくない方へ。My Agent PROは18年の実績とAIデータ分析を組み合わせ、お客様に最適な物件をご提案します。\n\n売買・投資・賃貸すべて対応。\n無料相談受付中。\n\n▼ お問い合わせ\nhttps://myagentpro.jp/contact',
+      tags: '不動産,マンション,東京,物件探し,不動産投資,マイエージェント,AI不動産,資産価値,不動産売買,無料相談'
+    }
+  }
+};
+
+function loadPreset(fb) {
+  var d = PRESETS[S.brand] || PRESETS.scalp;
   S.genP = d.video;
   S.genN = d.narration;
   S.genO = d.overlay;
@@ -2084,9 +2121,46 @@ function loadPreset(fb) {
   setAIO('out-nr', false, d.narration);
   setAIO('out-ov', false, d.overlay);
   setAIO('out-mt', false, d.meta);
+  setAIO('out-hook', false, d.hooks[0]);
+  setAIO('out-seo', false, 'タイトル: ' + d.seo.titles[0] + '\n\n説明文:\n' + d.seo.desc + '\n\nタグ: ' + d.seo.tags);
   document.getElementById('btn-s3').disabled = false;
   if (!fb) toast('プリセットを読み込みました', 'info');
+  renderTemplateChips();
   saveState();
+}
+
+// ── テンプレート選択チップ ──────────────────────────────────────
+function renderTemplateChips() {
+  var d = PRESETS[S.brand] || PRESETS.scalp;
+
+  // フック文チップ
+  var hookEl = document.getElementById('hook-chips');
+  if (hookEl) {
+    hookEl.innerHTML = d.hooks.map(function(h, i) {
+      return '<button class="tpl-chip" onclick="pickHook(' + i + ')">' + h + '</button>';
+    }).join('');
+  }
+
+  // SEOタイトルチップ
+  var seoEl = document.getElementById('seo-chips');
+  if (seoEl) {
+    seoEl.innerHTML = d.seo.titles.map(function(t, i) {
+      return '<button class="tpl-chip" onclick="pickSeoTitle(' + i + ')">' + t + '</button>';
+    }).join('');
+  }
+}
+
+function pickHook(i) {
+  var d = PRESETS[S.brand] || PRESETS.scalp;
+  setAIO('out-hook', false, d.hooks[i] || d.hooks[0]);
+  toast('フック文を選択しました', 'info');
+}
+
+function pickSeoTitle(i) {
+  var d = PRESETS[S.brand] || PRESETS.scalp;
+  var t = d.seo.titles[i] || d.seo.titles[0];
+  setAIO('out-seo', false, 'タイトル: ' + t + '\n\n説明文:\n' + d.seo.desc + '\n\nタグ: ' + d.seo.tags);
+  toast('SEOタイトルを選択しました', 'info');
 }
 
 // ════════════════════════════════════════
@@ -3749,16 +3823,18 @@ function safeRun(fn, label) {
 
 // init時のlocalStorageリカバリー
 function recoverStorage() {
-  var keys = ['vp4_state','vp4_api_key','vp4_proxy_url','vp4_beginner'];
-  keys.forEach(function(k) {
+  // JSONとして検証するキー（vp4_stateのみ）
+  var jsonKeys = ['vp4_state'];
+  jsonKeys.forEach(function(k) {
     try {
       var v = localStorage.getItem(k);
-      if (v) JSON.parse(v); // validate JSON
+      if (v) JSON.parse(v);
     } catch(e) {
       localStorage.removeItem(k);
       logError('[Storage] ' + k + ' が破損していたため削除しました');
     }
   });
+  // 文字列キーはJSON.parseしない（api_key, proxy_url, beginner等）
 }
 
 // ════════════════════════════════════════
@@ -3830,6 +3906,9 @@ function recoverStorage() {
 
   // API key status (ENV injection, no modal)
   updateApiStatus();
+
+  // テンプレートチップ初期化
+  renderTemplateChips();
 
   // Start timers
   updCD();
