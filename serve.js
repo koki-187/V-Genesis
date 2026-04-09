@@ -122,6 +122,48 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ── API: 画像生成プロキシ (Pollinations.ai / Turnstileバイパス) ──
+  if (req.url.startsWith('/api/generate-image') && req.method === 'GET') {
+    const urlObj = new URL('http://localhost' + req.url);
+    const prompt = urlObj.searchParams.get('prompt') || 'photorealistic portrait';
+    const width  = urlObj.searchParams.get('width')  || '576';
+    const height = urlObj.searchParams.get('height') || '1024';
+    const model  = urlObj.searchParams.get('model')  || 'flux';
+    const seed   = urlObj.searchParams.get('seed')   || String(Math.floor(Math.random() * 99999));
+    const nologo = urlObj.searchParams.get('nologo') || 'true';
+    const enhance = urlObj.searchParams.get('enhance') || 'true';
+
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`
+      + `?width=${width}&height=${height}&model=${model}&seed=${seed}&nologo=${nologo}&enhance=${enhance}`;
+
+    console.log('[Image] Proxying to Pollinations:', prompt.substring(0, 60) + '...');
+    const https = require('https');
+    const imgReq = https.get(pollinationsUrl, imgRes => {
+      if (imgRes.statusCode !== 200) {
+        res.writeHead(imgRes.statusCode, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Pollinations returned ' + imgRes.statusCode }));
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': imgRes.headers['content-type'] || 'image/jpeg',
+        'Cache-Control': 'public, max-age=3600',
+        'Access-Control-Allow-Origin': '*'
+      });
+      imgRes.pipe(res);
+    });
+    imgReq.on('error', err => {
+      console.error('[Image] Proxy error:', err.message);
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+    imgReq.setTimeout(60000, () => {
+      imgReq.destroy();
+      res.writeHead(504, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Timeout after 60s' }));
+    });
+    return;
+  }
+
   // ── API: Claude APIプロキシ (CORSバイパス) ──
   if (req.url === '/api/claude' && req.method === 'POST') {
     let body = '';

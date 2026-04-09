@@ -390,6 +390,18 @@ textarea:focus{border-color:var(--acc);}
   transition:all .15s;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
 .tpl-chip:hover{border-color:var(--acc);color:var(--acc);background:rgba(0,200,255,.08);}
 .tpl-chip.active{border-color:var(--acc);color:var(--acc);background:rgba(0,200,255,.12);}
+/* ── AI画像生成グリッド ── */
+.img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;}
+@media(max-width:600px){.img-grid{grid-template-columns:repeat(2,1fr);}}
+.img-placeholder{background:var(--s2);border:1px solid var(--ln);border-radius:8px;
+  min-height:100px;display:flex;align-items:center;justify-content:center;
+  color:var(--tx2);font-size:12px;padding:16px;
+  animation:img-pulse 1.8s ease-in-out infinite;}
+@keyframes img-pulse{0%,100%{opacity:.5;}50%{opacity:1;}}
+.img-result{display:flex;flex-direction:column;border-radius:8px;overflow:hidden;
+  border:1px solid var(--ln);background:var(--s2);}
+.img-result img{transition:transform .2s;}
+.img-result img:hover{transform:scale(1.02);}
 .stat-g{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px;}
 .stat{background:var(--s2);border:1px solid var(--ln);border-radius:5px;padding:8px 9px;text-align:center;}
 .sv2{font-family:var(--mon);font-size:20px;font-weight:600;color:var(--acc);line-height:1.1;}
@@ -858,6 +870,46 @@ body.beginner-mode .pro-only{display:none;}
         <button class="btn btn-g" onclick="cpOpen('s3-pb','https://klingai.com')">Kling AI</button>
       </div>
     </div>
+    <!-- ── AI画像生成（Pollinations.ai / FLUX） ── -->
+    <div class="card" id="img-gen-card">
+      <div class="cl">AI画像生成 <span class="badge b-free" style="background:var(--grn);color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;">無料・APIキー不要</span></div>
+      <div class="beginner-hint">動画素材が不足している場合、AIが高品質な画像を無料生成します（Pollinations.ai FLUX）。生成した画像はそのままダウンロードしてタイムラインに追加できます。</div>
+      <div class="r2" style="align-items:flex-start;gap:12px;">
+        <div class="col" style="flex:2;">
+          <label class="lbl">生成プロンプト <span style="font-size:10px;color:var(--tx2);">（日本語・英語どちらでも可）</span></label>
+          <textarea id="img-prompt" rows="3" placeholder="例: 40代日本人男性 自信に満ちた笑顔 クリニック 清潔感 photorealistic..." style="font-size:12px;"></textarea>
+          <div class="tpl-chips" id="img-chips" style="margin-top:6px;"></div>
+        </div>
+        <div class="col" style="flex:1;min-width:140px;">
+          <label class="lbl">アスペクト比</label>
+          <select id="img-ratio">
+            <option value="576x1024">縦 9:16（Reels/Shorts）</option>
+            <option value="1024x576">横 16:9（YouTube）</option>
+            <option value="1024x1024">正方形 1:1（Feed）</option>
+          </select>
+          <label class="lbl" style="margin-top:10px;">スタイル</label>
+          <select id="img-style">
+            <option value="photorealistic, professional photography, sharp focus, 8K">フォトリアル</option>
+            <option value="cinematic, dramatic lighting, film look, movie still">シネマティック</option>
+            <option value="clean, minimalist, white background, bright, professional">クリーン</option>
+            <option value="warm, lifestyle, authentic, natural light, candid">ライフスタイル</option>
+            <option value="luxury, high-end, elegant, bokeh, premium quality">高級感</option>
+          </select>
+          <label class="lbl" style="margin-top:10px;">生成枚数</label>
+          <select id="img-count">
+            <option value="3">3枚（推奨）</option>
+            <option value="1">1枚（速い）</option>
+            <option value="6">6枚</option>
+          </select>
+        </div>
+      </div>
+      <div class="brow" style="margin-top:8px;">
+        <button class="btn btn-ai" onclick="genImages()"><span id="img-gen-ic">&#9733;</span> <span id="img-gen-lb">AI画像を生成</span></button>
+        <button class="btn btn-g" onclick="fillImgPromptFromBrand()">ブランド別プロンプト自動入力</button>
+      </div>
+      <div id="img-grid" class="img-grid" style="display:none;margin-top:12px;"></div>
+    </div>
+
     <div class="card">
       <div class="cl">タイムライン <span id="tl-badge" class="badge b-free" style="display:none">0クリップ</span></div>
       <div class="tlw">
@@ -1880,6 +1932,7 @@ function gs(id) {
 
   // Stage-specific data sync
   if (id === 's3' && S.genP) document.getElementById('s3-pb').textContent = S.genP;
+  if (id === 's3') renderImgChips();
   if (id === 's4' && S.genN) document.getElementById('s4-nar').value = S.genN;
   if (id === 's5') syncAll();
 
@@ -1984,8 +2037,70 @@ function genAll() {
 
   var b = brands[S.brand];
   var toneMap = { trust: '信頼感・専門性', emotional: '感動・共感', luxury: '高級・洗練', energetic: '活力・変身' };
-  var sys = 'あなたはブランド「' + b.name + '」の動画制作AIです。ターゲット：' + b.tgt + '。トーン：' + toneMap[S.tone] + '。\n必ず以下の形式で：\n【動画プロンプト】\n（英語、200語以内、cinematic/photorealistic）\n【ナレーション原稿】\n（日本語、' + S.dur + '秒テンポ）\n【テキストオーバーレイ】\n（5語以内×3枚、改行区切り）\n【BGM・シーン構成メモ】\n（3行以内）\n【冒頭3秒フック文】\n（視聴者を瞬時に引き込む短いキャッチコピー、20文字以内×3パターン）\n【SEOタイトル】\n（YouTubeタイトル60文字以内、検索キーワード含む）\n【SEO説明文】\n（YouTube説明文300文字、最初の2行が重要）\n【SEOタグ】\n（タグ10個カンマ区切り）';
-  var user = '用途：' + S.purpose + ' / シーン：' + S.scene + ' / 追加KW：' + (S.kw || 'なし');
+  var sceneMap = {
+    'before-after': 'Before/After変身（最高エンゲージメント形式）',
+    'lifestyle': 'ライフスタイル密着（共感・親近感重視）',
+    'testimonial': 'お客様の声・証言（社会的証明）',
+    'educational': '知識・ノウハウ共有（権威性構築）',
+    'cinematic': 'シネマティック（高級感・ブランディング）'
+  };
+  var purposeCtaMap = {
+    'youtube': '詳しくはプロフィールリンク / 無料相談はこちら',
+    'instagram': 'プロフィールのリンクから予約 / DMでご相談',
+    'tiktok': 'コメントに「詳しく」と書いてね / フォローして続報をチェック',
+    'lp': '今すぐ無料カウンセリングを予約 / 先着N名様限定'
+  };
+  var sys = [
+    'あなたは2025-2026年のSNSマーケティングと動画制作を専門とするAIです。',
+    'ブランド: ' + b.name + ' | ターゲット: ' + b.tgt + ' | トーン: ' + toneMap[S.tone],
+    '',
+    '## あなたの使命',
+    '視聴者に「試してみたい！やってみたい！」「この人に依頼したい！信頼できる！」と感じさせる',
+    '宣伝・集客動画のコンテンツを生成する。視聴者の感情を動かし、行動を引き出すことが最優先。',
+    '',
+    '## 2025-2026年SNSトレンド必須要素',
+    '1. 【スクロール停止フック】冒頭1-3秒で視聴継続率80%以上を狙う。問いかけ型・衝撃データ型・感情共鳴型のいずれかを使う',
+    '2. 【Before/After構造】変身・改善ストーリーが最も高エンゲージメント。問題→解決→新しい自分の三部構成',
+    '3. 【数字で信頼構築】施術件数・年数・成約率・満足度など具体的な実績数値を必ず含める',
+    '4. 【社会的証明】「〇〇件の実績」「メディア掲載多数」「口コミ★4.9」など第三者の評価を入れる',
+    '5. 【PAS構造】Problem（問題の共感）→Agitate（悩みを深掘り）→Solution（解決策の提示）',
+    '6. 【無音対応】テキストオーバーレイは音なしで意味が伝わる内容にする（SNS視聴の60%は無音）',
+    '7. 【リスクゼロ訴求】「まず話を聞くだけでOK」「無料カウンセリング」でハードルを最低限に',
+    '8. 【権威性＋人柄の透明性】資格・実績の明示 + 親しみやすい言葉でThis人に頼みたいを演出',
+    '9. 【FOMO活用】「今なら」「先着限定」「残りN日」で緊急性を演出（過剰にならない程度）',
+    '10. 【明確なCTA】最後に具体的な行動を1つだけ要求する（' + (purposeCtaMap[S.purpose] || 'プロフィールリンクから') + '）',
+    '',
+    '## 「試してみたい！」を引き出す技法',
+    '- 変身ストーリーの主人公を視聴者と同世代・同悩みに設定',
+    '- 「たった○回で」「○週間後には」など期間・回数の具体化',
+    '- 施術/サービスのプロセスをチラ見せして興味を引く',
+    '- 「私も同じ悩みがあった」という共感から始める',
+    '',
+    '## 「この人に依頼したい！」を引き出す技法',
+    '- 専門資格・実績・年数を自然に盛り込む（押し付けず）',
+    '- 失敗談・苦労話で人間性を見せる（完璧すぎない）',
+    '- 「お客様の声」形式のナレーションで第三者視点を活用',
+    '- 「なぜこの仕事をしているか」という動機・想いを伝える',
+    '',
+    '必ず以下の形式のみで出力（他のテキスト・説明は一切不要）：',
+    '【動画プロンプト】',
+    '（英語200語以内。cinematic/photorealistic。上記トレンドを反映したショット構成を具体的に記述。カメラワーク・照明・感情表現まで詳細に）',
+    '【ナレーション原稿】',
+    '（日本語。' + S.dur + '秒の動画テンポ。PAS構造＋感情的フック＋CTAで締める。句読点でテンポを調整）',
+    '【テキストオーバーレイ】',
+    '（無音視聴でも伝わる内容。インパクト重視の5語以内×3枚、改行区切り。数字・実績・CTA含む）',
+    '【BGM・シーン構成メモ】',
+    '（BGMジャンル・テンポ、シーン割り、感情の流れを3行で。Before/Afterの転換点を明記）',
+    '【冒頭3秒フック文】',
+    '（スクロールを止める最強の一言。20文字以内×3パターン。問いかけ型/衝撃型/共感型を各1つ）',
+    '【SEOタイトル】',
+    '（60文字以内。検索意図キーワードを先頭に。クリック率を最大化する数字・感情語を含む）',
+    '【SEO説明文】',
+    '（300文字。最初の125文字が展開前に表示される最重要部分。主要KW自然含有。CTAで終わる）',
+    '【SEOタグ】',
+    '（タグ10個カンマ区切り。ロングテールKWと競合分析を考慮）'
+  ].join('\n');
+  var user = '用途：' + S.purpose + ' / シーン：' + (sceneMap[S.scene] || S.scene) + ' / 追加KW：' + (S.kw || 'なし') + ' / 動画尺：' + S.dur + '秒';
 
   // serve.jsプロキシ経由でCORSバイパス（フォールバック：直接API）
   var url = '/api/claude';
@@ -2731,6 +2846,158 @@ async function genVoiceVox(text, speakerId) {
   if (!s.ok) throw new Error('synthesis failed: ' + s.status);
   return await s.blob(); // WAV blob
 }
+
+// ════════════════════════════════════════════════════════════
+// AI IMAGE GENERATION — Pollinations.ai FLUX（無料・APIキー不要）
+// ════════════════════════════════════════════════════════════
+var IMG_PRESETS = {
+  scalp: {
+    prompts: [
+      '40代日本人男性 自信に満ちた笑顔 きれいな髪型 クリニック白背景 portrait professional, photorealistic, sharp focus, 8K',
+      '日本人男性 薄毛改善 before-after transformation, clinic setting, professional medical photography, photorealistic',
+      '清潔感のある日本人ビジネスマン 屋外 笑顔 自信 confident lifestyle portrait Japan, natural light, photorealistic',
+      '日本人スタッフ 施術シーン クリニック 医療専門家 professional medical clinic interior, clean, photorealistic',
+      '満足そうな日本人男性 鏡を見ている 笑顔 自信回復 lifestyle portrait authentic, warm light'
+    ],
+    chips: ['ビフォーアフター（男性）', 'クリニック施術シーン', '自信の笑顔・ライフスタイル', 'スタッフ専門家', '満足したお客様']
+  },
+  agent: {
+    prompts: [
+      '東京の高級マンション 外観 夕暮れ 都市景観 architectural photography, dramatic sky, photorealistic, 8K',
+      '日本人不動産エージェント スーツ 笑顔 オフィス confident professional portrait, business, photorealistic',
+      '都内モダンリビング インテリア 明るい 高級感 luxury interior design photography, natural light, photorealistic',
+      '東京のスカイライン 夜景 高層マンション urban real estate Tokyo skyline, cinematic, photorealistic',
+      '鍵の受け渡し 日本人夫婦 笑顔 新居 happy Japanese couple receiving house keys, lifestyle, warm, photorealistic'
+    ],
+    chips: ['高級マンション外観', 'プロ不動産エージェント', '高級インテリア', '東京夜景スカイライン', 'お引き渡しシーン']
+  }
+};
+
+function renderImgChips() {
+  var brand = S.brand || 'scalp';
+  var preset = IMG_PRESETS[brand] || IMG_PRESETS.scalp;
+  var container = document.getElementById('img-chips');
+  if (!container) return;
+  container.innerHTML = preset.chips.map(function(label, i) {
+    return '<button class="tpl-chip" onclick="pickImgPrompt(' + i + ')">' + label + '</button>';
+  }).join('');
+}
+
+function pickImgPrompt(i) {
+  var brand = S.brand || 'scalp';
+  var preset = IMG_PRESETS[brand] || IMG_PRESETS.scalp;
+  var style = document.getElementById('img-style') ? document.getElementById('img-style').value : '';
+  var base = preset.prompts[i] || '';
+  // Append style keywords if not already in prompt
+  var styleKw = style.split(',')[0].trim();
+  if (base.toLowerCase().indexOf(styleKw.toLowerCase()) === -1) {
+    base = base + ', ' + style;
+  }
+  document.getElementById('img-prompt').value = base;
+  toast('プロンプトを設定しました', 'info', 2000);
+}
+
+function fillImgPromptFromBrand() {
+  var brand = S.brand || 'scalp';
+  var preset = IMG_PRESETS[brand] || IMG_PRESETS.scalp;
+  // Pick prompt based on current scene
+  var sceneIdxMap = { 'before-after': 0, 'lifestyle': 2, 'testimonial': 4, 'educational': 1, 'cinematic': 3 };
+  var idx = sceneIdxMap[S.scene] || 0;
+  pickImgPrompt(Math.min(idx, preset.prompts.length - 1));
+}
+
+function genImages() {
+  var prompt = (document.getElementById('img-prompt').value || '').trim();
+  if (!prompt) {
+    fillImgPromptFromBrand();
+    prompt = (document.getElementById('img-prompt').value || '').trim();
+  }
+  if (!prompt) { toast('プロンプトを入力してください', 'warning'); return; }
+
+  var ratioVal = (document.getElementById('img-ratio').value || '576x1024');
+  var wh = ratioVal.split('x');
+  var imgW = parseInt(wh[0]) || 576;
+  var imgH = parseInt(wh[1]) || 1024;
+  var count = parseInt((document.getElementById('img-count') || {}).value) || 3;
+
+  var lb = document.getElementById('img-gen-lb');
+  var ic = document.getElementById('img-gen-ic');
+  if (lb) lb.textContent = '生成中... (' + count + '枚)';
+  if (ic) ic.textContent = '...';
+
+  var grid = document.getElementById('img-grid');
+  grid.style.display = 'grid';
+  // Show placeholders
+  grid.innerHTML = '';
+  for (var k = 0; k < count; k++) {
+    var ph = document.createElement('div');
+    ph.className = 'img-placeholder';
+    ph.innerHTML = '<div style="text-align:center;"><div style="font-size:20px;margin-bottom:6px;">&#9733;</div>生成中...<br><small style="color:var(--tx2);font-size:10px;">FLUX / Pollinations.ai</small></div>';
+    grid.appendChild(ph);
+  }
+
+  // Generate with different seeds for variety
+  var promises = [];
+  for (var j = 0; j < count; j++) {
+    promises.push((function(idx) {
+      var seed = Math.floor(Math.random() * 99999);
+      // serve.jsプロキシ経由（Turnstileバイパス）
+      var url = '/api/generate-image?prompt=' + encodeURIComponent(prompt)
+        + '&width=' + imgW + '&height=' + imgH
+        + '&model=flux&nologo=true&enhance=true&seed=' + seed;
+      return fetch(url, { signal: AbortSignal.timeout(65000) })
+        .then(function(r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.blob();
+        })
+        .then(function(blob) {
+          var objUrl = URL.createObjectURL(blob);
+          var card = document.createElement('div');
+          card.className = 'img-result';
+          var ratio = imgW + 'x' + imgH;
+          card.innerHTML = ''
+            + '<img src="' + objUrl + '" loading="lazy" onclick="this.requestFullscreen && this.requestFullscreen()" title="クリックで拡大" style="width:100%;border-radius:6px;cursor:zoom-in;display:block;">'
+            + '<div style="display:flex;gap:5px;margin-top:6px;">'
+            +   '<button class="btn btn-g" style="flex:1;font-size:11px;padding:5px 4px;" onclick="downloadImg(\'' + objUrl + '\',' + idx + ')">&#8595; DL</button>'
+            +   '<button class="btn btn-p" style="flex:1;font-size:11px;padding:5px 4px;" onclick="addImgToTimeline(\'' + objUrl + '\',' + idx + ')">+ タイムライン</button>'
+            + '</div>'
+            + '<div style="font-size:10px;color:var(--tx2);margin-top:3px;text-align:center;">' + ratio + ' / FLUX / seed:' + seed + '</div>';
+          grid.children[idx] ? grid.children[idx].replaceWith(card) : grid.appendChild(card);
+        })
+        .catch(function(err) {
+          var ph = grid.children[idx];
+          if (ph) ph.innerHTML = '<div style="color:var(--red,#e74c3c);text-align:center;padding:8px;font-size:12px;">&#10007; 生成失敗<br><small>' + err.message + '</small><br><button class="btn btn-g" style="margin-top:6px;font-size:11px;" onclick="genImages()">再試行</button></div>';
+          logError('[画像生成] ' + err.message);
+        });
+    })(j));
+  }
+
+  Promise.all(promises).then(function() {
+    if (lb) lb.textContent = '再生成（' + count + '枚）';
+    if (ic) ic.textContent = '★';
+    toast('画像生成完了！', 'success', 3000);
+  }).catch(function() {
+    if (lb) lb.textContent = '再生成（' + count + '枚）';
+    if (ic) ic.textContent = '★';
+  });
+}
+
+function downloadImg(url, idx) {
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'vgenesis_img_' + (idx + 1) + '_' + Date.now() + '.jpg';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  toast('画像をダウンロードしました', 'success', 2000);
+}
+
+function addImgToTimeline(url, idx) {
+  addClip('AI_IMAGE_' + (idx + 1) + '.jpg', '5s');
+  toast('画像クリップをタイムラインに追加しました（5秒）', 'success', 2500);
+}
+
+// ════════════════════════════════════════════════════════════
 
 function openVV() {
   var t = document.getElementById('s4-nar').value;
