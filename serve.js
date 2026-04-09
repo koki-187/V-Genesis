@@ -122,6 +122,39 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ── API: FFmpeg ワンクリック実行 ──
+  if (req.url === '/api/exec' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      let parsed;
+      try { parsed = JSON.parse(body); } catch(e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
+        return;
+      }
+      const cmd = (parsed.cmd || '').trim();
+      // セキュリティ: ffmpegコマンドのみ許可
+      if (!cmd.startsWith('ffmpeg')) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Only ffmpeg commands are allowed' }));
+        return;
+      }
+      console.log('[FFmpeg] Executing:', cmd.substring(0, 80) + '...');
+      exec(cmd, { shell: 'cmd.exe', timeout: 300000 }, (err, stdout, stderr) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        if (err) {
+          console.error('[FFmpeg] Error:', err.message);
+          res.end(JSON.stringify({ ok: false, error: err.message, stderr: stderr || '' }));
+        } else {
+          console.log('[FFmpeg] Done:', stdout.substring(0, 100));
+          res.end(JSON.stringify({ ok: true, stdout: stdout || 'OK', stderr: stderr || '' }));
+        }
+      });
+    });
+    return;
+  }
+
   // ── API: 画像生成プロキシ (Pollinations.ai / Turnstileバイパス) ──
   if (req.url.startsWith('/api/generate-image') && req.method === 'GET') {
     const urlObj = new URL('http://localhost' + req.url);

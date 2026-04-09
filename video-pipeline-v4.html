@@ -559,6 +559,28 @@ textarea:focus{border-color:var(--acc);}
 }
 body.beginner-mode .beginner-hint{display:block;}
 body.beginner-mode .pro-only{display:none;}
+
+/* ── BEGINNER MODE: フォント・コントラスト強化 ── */
+body.beginner-mode .lbl{font-size:13px;color:var(--tx1);}
+body.beginner-mode .cl{font-size:12px;}
+body.beginner-mode .aio{font-size:13px;min-height:80px;}
+body.beginner-mode .btn{font-size:13px;padding:8px 14px;}
+body.beginner-mode .nb{font-size:13px;}
+body.beginner-mode select,body.beginner-mode input[type=text],
+body.beginner-mode input[type=number],body.beginner-mode textarea{font-size:13px;}
+body.beginner-mode .tpl-chip{font-size:12px;padding:5px 12px;}
+body.beginner-mode .sh-ti{font-size:22px;}
+body.beginner-mode .sh-su{font-size:13px;}
+/* 「今やること」バナー */
+body.beginner-mode .now-action{display:flex;}
+.now-action{
+  display:none;align-items:center;gap:10px;padding:10px 14px;margin-bottom:12px;
+  background:linear-gradient(90deg,rgba(0,200,255,.12),rgba(0,200,255,.04));
+  border-left:3px solid var(--acc);border-radius:0 6px 6px 0;font-size:13px;color:var(--tx1);
+}
+.now-action-icon{font-size:20px;flex-shrink:0;}
+.now-action-text{flex:1;line-height:1.5;}
+.now-action-text strong{display:block;color:var(--acc);font-size:14px;margin-bottom:2px;}
 </style>
 </head>
 <body>
@@ -741,6 +763,7 @@ body.beginner-mode .pro-only{display:none;}
     <div class="sh-su">ブランド・用途・テーマを選ぶだけで次ステップが自動準備されます</div>
   </div>
   <div class="sb">
+    <div class="now-action"><span class="now-action-icon">①</span><div class="now-action-text"><strong>まずここから始めましょう</strong>左の「ブランド」ボタンを押して、次に「次へ：プロンプト生成 →」ボタンを押してください。それだけでOKです！</div></div>
     <div class="beginner-hint">ここでは動画の基本情報を設定します。「ブランド」で誰向けの動画か、「用途」でどのSNSに投稿するか、「シーンタイプ」でどんな映像にするかを選んでください。</div>
     <div class="card">
       <div class="r3">
@@ -792,6 +815,7 @@ body.beginner-mode .pro-only{display:none;}
     <div class="sh-su">Claude APIが台本・動画プロンプト・ナレーション・オーバーレイを一括生成します</div>
   </div>
   <div class="sb">
+    <div class="now-action"><span class="now-action-icon">②</span><div class="now-action-text"><strong>「AI一括生成」ボタンを押してください</strong>AIが動画の台本・フック・SEO情報をすべて自動で作ります。30秒ほどお待ちください。</div></div>
     <div class="beginner-hint">「一括生成」ボタンを押すと、AIが自動で動画用の文章を作ってくれます。APIキーが未設定の場合は「プリセット」で見本が読み込まれます。</div>
     <div class="card">
       <div class="alert a-info" style="margin-bottom:10px;">「一括生成」で4種類のコンテンツを同時生成。API失敗時はプリセットに自動フォールバック。</div>
@@ -842,12 +866,23 @@ body.beginner-mode .pro-only{display:none;}
       </div>
       <!-- ═ YouTube SEO ═ -->
       <div class="col" style="margin-top:8px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <label class="lbl" style="margin:0;">&#128269; YouTube SEO <span style="font-family:var(--mon);font-size:9px;color:var(--c3);">タイトル / 説明文 / タグ</span></label>
-          <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-seo')">コピー</button>
-        </div>
+        <label class="lbl">&#128269; YouTube SEO</label>
         <div class="tpl-chips" id="seo-chips"></div>
-        <div id="out-seo" class="aio empty" style="min-height:80px;border-left:2px solid var(--yel);">---</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;margin-top:6px;">
+          <label class="lbl" style="margin:0;font-size:11px;color:var(--c2);">タイトル <span style="color:var(--c3);">（60文字以内）</span></label>
+          <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-seo-title')">コピー</button>
+        </div>
+        <div id="out-seo-title" class="aio empty" style="min-height:36px;border-left:2px solid var(--yel);">---</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;margin-top:8px;">
+          <label class="lbl" style="margin:0;font-size:11px;color:var(--c2);">説明文 <span style="color:var(--c3);">（300文字・最初の125文字が重要）</span></label>
+          <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-seo-desc')">コピー</button>
+        </div>
+        <div id="out-seo-desc" class="aio empty" style="min-height:60px;border-left:2px solid var(--yel);">---</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;margin-top:8px;">
+          <label class="lbl" style="margin:0;font-size:11px;color:var(--c2);">タグ <span style="color:var(--c3);">（カンマ区切り・10個）</span></label>
+          <button class="btn btn-g" style="padding:2px 7px;font-size:10px;" onclick="cpf('out-seo-tags')">コピー</button>
+        </div>
+        <div id="out-seo-tags" class="aio empty" style="min-height:36px;border-left:2px solid var(--yel);">---</div>
       </div>
     </div>
     <div class="brow">
@@ -866,6 +901,7 @@ body.beginner-mode .pro-only{display:none;}
     <div class="sh-su">プロンプトをコピーして各ツールで生成 &rarr; タイムラインに追加</div>
   </div>
   <div class="sb">
+    <div class="now-action"><span class="now-action-icon">③</span><div class="now-action-text"><strong>AI画像を生成して素材を作りましょう</strong>「AI画像を生成」ボタンで無料の画像素材が作れます。生成後「保存・使用」を押すとタイムラインに追加されます。動画ツールをお持ちの方はプロンプトをコピーして各ツールで生成してください。</div></div>
     <div class="beginner-hint">左のプロンプトをコピーして、Sora・Veo・Kling AIなどの動画生成ツールで動画を作ります。作ったら下のタイムラインにクリップを追加してください。</div>
     <div class="alert a-warn">Soraは残り <strong id="s3-days">---</strong> 日。最優先で素材を生成してください。</div>
     <div class="card">
@@ -951,6 +987,7 @@ body.beginner-mode .pro-only{display:none;}
     <div class="sh-su">VOICEVOXで日本語ナレーション生成 &rarr; BGM選択 &rarr; 音量バランス設定</div>
   </div>
   <div class="sb">
+    <div class="now-action"><span class="now-action-icon">④</span><div class="now-action-text"><strong>ナレーション原稿を確認して音声を生成しましょう</strong>Step 2で生成された原稿が左のテキストエリアに表示されています。「試し聴き」ボタンで音声をプレビューできます。VOICEVOXをお使いの方は「VOICEVOXで生成」を押してください。</div></div>
     <div class="beginner-hint">ここでは動画の音声を設定します。左でナレーション（話す内容）、右でBGM（背景の音楽）を設定します。VOICEVOXは無料の音声読み上げソフトです。</div>
     <div class="r2">
       <div class="card" style="margin-bottom:0;">
@@ -969,6 +1006,7 @@ body.beginner-mode .pro-only{display:none;}
           <span class="rval">1.00x</span>
         </div>
         <div class="brow" style="margin-top:4px;">
+          <button class="btn btn-ai" onclick="previewNarSpeech()" title="ブラウザ内蔵音声でプレビュー（インストール不要）">&#9654; 試し聴き</button>
           <button class="btn btn-p" onclick="openVV()">VOICEVOXで生成</button>
           <button class="btn btn-g" onclick="launchVoicevox()">VOICEVOX起動</button>
           <button class="btn btn-g" onclick="saveNarToDrive()">Driveに音声保存</button>
@@ -1513,8 +1551,10 @@ body.beginner-mode .pro-only{display:none;}
         </div>
         <div class="brow">
           <button class="btn btn-p" onclick="cpEl('cmd-bd')">コマンドをコピー</button>
-          <button class="btn btn-grn" onclick="showCC()">Claude Code 指示文を生成</button>
+          <button class="btn btn-grn" onclick="execFfmpegCmd()" title="serve.js経由でFFmpegを直接実行（Node.jsサーバーが起動中の場合）">&#9654; 動画を変換する（実行）</button>
+          <button class="btn btn-g" onclick="showCC()">Claude Code 指示文を生成</button>
         </div>
+        <div id="ffmpeg-result" style="display:none;margin-top:8px;padding:8px 10px;border-radius:6px;font-family:var(--mon);font-size:11px;"></div>
       </div>
 
       <!-- BATCH -->
@@ -2163,14 +2203,9 @@ function genAll() {
     setAIO('out-ov', false, S.genO || '---');
     setAIO('out-mt',   false, S.genM || '---');
     setAIO('out-hook', false, genHook || '（生成されませんでした）');
-    setAIO('out-seo',  false, [
-      'タイトル: ' + (genSeoTitle || '---'),
-      '',
-      '説明文:',
-      genSeoDesc || '---',
-      '',
-      'タグ: ' + (genSeoTags || '---')
-    ].join('\n'));
+    setAIO('out-seo-title', false, genSeoTitle || '---');
+    setAIO('out-seo-desc',  false, genSeoDesc  || '---');
+    setAIO('out-seo-tags',  false, genSeoTags  || '---');
     document.getElementById('btn-s3').disabled = false;
     toast('AI生成が完了しました', 'success');
     saveState();
@@ -2269,7 +2304,9 @@ function loadPreset(fb) {
   setAIO('out-ov', false, d.overlay);
   setAIO('out-mt', false, d.meta);
   setAIO('out-hook', false, d.hooks[0]);
-  setAIO('out-seo', false, 'タイトル: ' + d.seo.titles[0] + '\n\n説明文:\n' + d.seo.desc + '\n\nタグ: ' + d.seo.tags);
+  setAIO('out-seo-title', false, d.seo.titles[0]);
+  setAIO('out-seo-desc',  false, d.seo.desc);
+  setAIO('out-seo-tags',  false, d.seo.tags);
   document.getElementById('btn-s3').disabled = false;
   if (!fb) toast('プリセットを読み込みました', 'info');
   renderTemplateChips();
@@ -2305,8 +2342,9 @@ function pickHook(i) {
 
 function pickSeoTitle(i) {
   var d = PRESETS[S.brand] || PRESETS.scalp;
-  var t = d.seo.titles[i] || d.seo.titles[0];
-  setAIO('out-seo', false, 'タイトル: ' + t + '\n\n説明文:\n' + d.seo.desc + '\n\nタグ: ' + d.seo.tags);
+  setAIO('out-seo-title', false, d.seo.titles[i] || d.seo.titles[0]);
+  setAIO('out-seo-desc',  false, d.seo.desc);
+  setAIO('out-seo-tags',  false, d.seo.tags);
   toast('SEOタイトルを選択しました', 'info');
 }
 
@@ -2664,6 +2702,47 @@ function buildBatch() {
 }
 
 function togBatch(el) { el.classList.toggle('sel'); }
+
+// ── FFmpeg ワンクリック実行 (/api/exec via serve.js) ──────────────────
+function execFfmpegCmd() {
+  var cmdEl = document.getElementById('cmd-bd');
+  var resEl = document.getElementById('ffmpeg-result');
+  if (!cmdEl || !resEl) return;
+  var rawCmd = cmdEl.textContent || '';
+  // PowerShellコメント行・空行を除去し、ffmpegコマンド行だけ抽出
+  var lines = rawCmd.split('\n').map(function(l){ return l.trim(); });
+  var ffLine = lines.find(function(l){ return l.startsWith('ffmpeg'); });
+  if (!ffLine) {
+    toast('FFmpegコマンドが見つかりません。先にコマンドを生成してください。', 'warning');
+    return;
+  }
+  resEl.style.display = 'block';
+  resEl.style.background = 'rgba(0,200,255,.06)';
+  resEl.style.color = 'var(--c2)';
+  resEl.textContent = '実行中... ' + ffLine.substring(0, 60) + '...';
+  fetch('/api/exec', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cmd: ffLine })
+  }).then(function(r){ return r.json(); }).then(function(d) {
+    if (d.ok) {
+      resEl.style.background = 'rgba(0,217,126,.08)';
+      resEl.style.color = 'var(--grn)';
+      resEl.textContent = '✅ 完了！ ' + (d.stdout || '').substring(0, 200);
+      toast('FFmpeg実行完了！ 出力ファイルを確認してください。', 'success', 5000);
+    } else {
+      resEl.style.background = 'rgba(255,68,85,.08)';
+      resEl.style.color = 'var(--red)';
+      resEl.textContent = '❌ エラー: ' + (d.error || d.stderr || '不明なエラー').substring(0, 300);
+      toast('FFmpeg実行エラー。コマンドを確認してPowerShellで手動実行してください。', 'error', 6000);
+    }
+  }).catch(function(e) {
+    resEl.style.background = 'rgba(255,68,85,.08)';
+    resEl.style.color = 'var(--red)';
+    resEl.textContent = '❌ サーバーへの接続失敗: ' + e.message + ' — serve.jsが起動していることを確認してください。';
+    toast('サーバーに接続できません。Node.jsサーバーを起動してください。', 'error', 6000);
+  });
+}
 
 function buildSoraGuide() {
   var r = gcd(S.w, S.h), rs = (S.w / r) + ':' + (S.h / r);
@@ -3078,6 +3157,32 @@ function addImgToTimeline(url, idx) {
 
 // ════════════════════════════════════════════════════════════
 
+// ── Web Speech API 試し聴き ──────────────────────────────────────
+var _ttsUtterance = null;
+function previewNarSpeech() {
+  var t = document.getElementById('s4-nar').value.trim();
+  if (!t) { toast('ナレーション原稿を入力してください', 'warning'); return; }
+  if (!window.speechSynthesis) { toast('このブラウザはWeb Speech APIに対応していません', 'error'); return; }
+  // 再生中なら停止
+  if (window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel();
+    toast('再生を停止しました', 'info');
+    return;
+  }
+  var utt = new SpeechSynthesisUtterance(t);
+  utt.lang = 'ja-JP';
+  utt.rate = 0.95;
+  utt.pitch = 1.0;
+  // 日本語音声を優先選択
+  var voices = window.speechSynthesis.getVoices();
+  var jaVoice = voices.find(function(v){ return v.lang === 'ja-JP'; });
+  if (jaVoice) utt.voice = jaVoice;
+  utt.onstart = function(){ toast('試し聴き中... （もう一度押すと停止）', 'info', 10000); };
+  utt.onerror = function(e){ toast('音声エラー: ' + e.error, 'error'); };
+  _ttsUtterance = utt;
+  window.speechSynthesis.speak(utt);
+}
+
 function openVV() {
   var t = document.getElementById('s4-nar').value;
   if (!t) { toast('ナレーションテキストを入力してください', 'warning'); return; }
@@ -3166,14 +3271,18 @@ function saveScriptToDrive() {
   var script = document.getElementById('out-sc') ? document.getElementById('out-sc').textContent : '';
   var prompt = document.getElementById('out-vp') ? document.getElementById('out-vp').textContent : '';
   var narr   = document.getElementById('out-nr') ? document.getElementById('out-nr').textContent : '';
-  var seo    = document.getElementById('out-seo') ? document.getElementById('out-seo').textContent : '';
+  var seoTitle = document.getElementById('out-seo-title') ? document.getElementById('out-seo-title').textContent : '';
+  var seoDesc  = document.getElementById('out-seo-desc')  ? document.getElementById('out-seo-desc').textContent  : '';
+  var seoTags  = document.getElementById('out-seo-tags')  ? document.getElementById('out-seo-tags').textContent  : '';
   if (!script && !prompt && !narr) { toast('保存する台本がありません。先に生成してください。', 'warning'); return; }
   var content = '# V-Genesis 台本・プロンプト\n' +
     '生成日時: ' + new Date().toLocaleString('ja-JP') + '\n\n' +
     '## 台本\n' + (script || '---') + '\n\n' +
     '## 動画プロンプト\n' + (prompt || '---') + '\n\n' +
     '## ナレーション\n' + (narr || '---') + '\n\n' +
-    '## SEO\n' + (seo || '---') + '\n';
+    '## SEO タイトル\n' + (seoTitle || '---') + '\n\n' +
+    '## SEO 説明文\n' + (seoDesc || '---') + '\n\n' +
+    '## SEO タグ\n' + (seoTags || '---') + '\n';
   var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   var filename = 'script_' + new Date().toISOString().slice(0,10) + '_' + Date.now() + '.txt';
   // ローカルダウンロード + Driveフォルダへのコピーガイド
@@ -4248,8 +4357,8 @@ function recoverStorage() {
     gs(S.currentStep);
   }
 
-  // Beginner mode restore
-  if (localStorage.getItem('vp4_beginner') === '1') {
+  // Beginner mode restore (default ON for first-time users)
+  if (localStorage.getItem('vp4_beginner') !== '0') {
     document.getElementById('mode-sw').classList.add('on');
     document.body.classList.add('beginner-mode');
   }
