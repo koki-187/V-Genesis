@@ -9,8 +9,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <title>V-Genesis — AI動画制作システム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
   --bg:   #06080e;
@@ -1204,8 +1206,8 @@ body.beginner-mode .now-action{display:flex;}
          🧹 LOGO / WATERMARK REMOVER
          無料ツール: FFmpeg delogo / blur / IOPaint(AI)
          ═══════════════════════════════════════════════════ -->
-    <div class="card" style="margin-bottom:10px;">
-      <div class="cl" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+    <div class="card" style="margin-bottom:10px;overflow:visible;">
+      <div class="cl" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;position:sticky;top:35px;z-index:10;background:var(--s2);border-radius:6px 6px 0 0;margin:-16px -16px 8px -16px;padding:8px 16px;">
         <span>🧹 ロゴ・透かし除去 <span style="font-family:var(--mon);font-size:9px;color:var(--c3);font-weight:400;">無料: FFmpeg delogo / IOPaint AI</span></span>
         <div style="display:flex;gap:5px;">
           <button class="lr-mode-btn active" id="lr-m-delogo"  onclick="setLrMode('delogo',this)" title="周辺ピクセルでAI補完（推奨）">delogo</button>
@@ -1223,7 +1225,10 @@ body.beginner-mode .now-action{display:flex;}
            onmousedown="lrStartDrag(event)"
            onmousemove="lrDrag(event)"
            onmouseup="lrEndDrag(event)"
-           style="margin-bottom:8px;min-height:120px;">
+           ontouchstart="lrTouchStart(event)"
+           ontouchmove="lrTouchMove(event)"
+           ontouchend="lrTouchEnd(event)"
+           style="margin-bottom:8px;min-height:120px;touch-action:none;">
         <canvas id="lr-canvas" height="240"></canvas>
         <div id="lr-sel-box"></div>
         <div id="lr-preview-lbl">動画または画像をここにドロップ（またはクリックして選択）<br><span style="font-size:8px;">ドロップ後にマウスでドラッグして除去エリアを選択</span></div>
@@ -1309,11 +1314,40 @@ body.beginner-mode .now-action{display:flex;}
           </div>
         </div>
 
+        <!-- 自動起動ボタン -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
+          <button class="btn" style="font-size:11px;background:var(--a2);color:#fff;font-weight:700;" onclick="iopaintAutoStart()">⚡ IOPaint自動起動</button>
+          <button class="btn btn-g" style="font-size:10px;" onclick="checkIoPaintViaServer()">🔍 接続確認</button>
+          <span id="iop-local-ip" style="font-family:var(--mon);font-size:9px;color:var(--c3);"></span>
+        </div>
+
+        <!-- 複数領域管理 -->
+        <div style="margin-bottom:8px;border:1px solid var(--ln2);border-radius:5px;padding:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-family:var(--mon);font-size:9px;color:var(--c2);">除去領域リスト（複数OK）</span>
+            <div style="display:flex;gap:4px;">
+              <button class="btn btn-g" style="font-size:10px;padding:2px 8px;" onclick="addCurrentRegion()">＋ 現在の領域を追加</button>
+              <button class="btn btn-g" style="font-size:10px;padding:2px 8px;" onclick="clearRegions()">クリア</button>
+            </div>
+          </div>
+          <div id="iop-regions-list" style="min-height:28px;font-family:var(--mon);font-size:9px;color:var(--c3);">（領域未設定 — 座標を設定して「＋ 現在の領域を追加」）</div>
+        </div>
+
         <!-- AIアクションボタン -->
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-          <button class="btn" style="font-size:11px;background:var(--grn);color:#000;font-weight:700;" onclick="iopaintPreview()">🤖 AI除去プレビュー（現在フレーム）</button>
-          <button class="btn btn-g" style="font-size:10px;" onclick="iopaintBatchScript()">📋 バッチ処理スクリプト生成</button>
-          <button class="btn btn-g" style="font-size:10px;" onclick="window.open('http://localhost:8081','_blank')">🌐 IOPaint UIを開く</button>
+          <button class="btn" style="font-size:11px;background:var(--grn);color:#000;font-weight:700;" onclick="iopaintPreview()">🤖 フレームプレビュー</button>
+          <button class="btn" style="font-size:11px;background:linear-gradient(90deg,var(--grn),var(--acc));color:#000;font-weight:700;" onclick="iopaintProcessVideo()">🎬 動画を一括処理</button>
+          <button class="btn btn-g" style="font-size:10px;" onclick="iopaintBatchScript()">📋 スクリプト生成</button>
+          <button class="btn btn-g" style="font-size:10px;" onclick="window.open('http://localhost:8081','_blank')">🌐 IOPaint UI</button>
+        </div>
+
+        <!-- 動画処理プログレスバー -->
+        <div id="iop-video-progress" style="display:none;margin-bottom:8px;">
+          <div style="font-family:var(--mon);font-size:9px;color:var(--c2);margin-bottom:4px;" id="iop-video-msg">処理中...</div>
+          <div style="background:var(--ln);border-radius:3px;height:8px;overflow:hidden;">
+            <div id="iop-video-bar" style="height:100%;background:linear-gradient(90deg,var(--grn),var(--acc));width:0%;transition:width .3s;"></div>
+          </div>
+          <div style="font-family:var(--mon);font-size:9px;color:var(--c3);margin-top:3px;" id="iop-video-detail"></div>
         </div>
 
         <!-- プレビュー結果 -->
@@ -1852,21 +1886,42 @@ function toast(msg, type, duration) {
 // ERROR LOG (v4 new)
 // ════════════════════════════════════════
 var errorLogs = [];
+var _errorLogMax = 200; // メモリ上限
 function logError(msg) {
   var now = new Date();
   var ts = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+  if (errorLogs.length >= _errorLogMax) errorLogs.shift(); // 上限超えたら古いものを削除
   errorLogs.push({ time: ts, msg: msg });
-  renderErrorLog();
+  // DOM再構築ではなく単一要素を追記（パフォーマンス最適化）
+  var el = document.getElementById('error-log');
+  if (!el) return;
+  var empty = el.querySelector('.error-log-empty');
+  if (empty) empty.remove();
+  var item = document.createElement('div');
+  item.className = 'error-log-item';
+  item.innerHTML = '<span class="elt">[' + ts + ']</span>' + msg;
+  el.appendChild(item);
+  // 上限を超えた場合は最古の要素をDOMからも削除
+  var logItems = el.querySelectorAll('.error-log-item');
+  if (logItems.length > _errorLogMax) logItems[0].remove();
+  el.scrollTop = el.scrollHeight;
 }
 function renderErrorLog() {
   var el = document.getElementById('error-log');
+  if (!el) return;
   if (errorLogs.length === 0) {
-    el.innerHTML = '<div style="font-family:var(--mon);font-size:9px;color:var(--c3);padding:4px;">エラーはありません</div>';
+    el.innerHTML = '<div class="error-log-empty" style="font-family:var(--mon);font-size:9px;color:var(--c3);padding:4px;">エラーはありません</div>';
     return;
   }
-  el.innerHTML = errorLogs.map(function(e) {
-    return '<div class="error-log-item"><span class="elt">[' + e.time + ']</span>' + e.msg + '</div>';
-  }).join('');
+  var frag = document.createDocumentFragment();
+  errorLogs.forEach(function(e) {
+    var item = document.createElement('div');
+    item.className = 'error-log-item';
+    item.innerHTML = '<span class="elt">[' + e.time + ']</span>' + e.msg;
+    frag.appendChild(item);
+  });
+  el.innerHTML = '';
+  el.appendChild(frag);
   el.scrollTop = el.scrollHeight;
 }
 function clearErrorLog() {
@@ -1932,16 +1987,23 @@ function previewMedia(blobUrl, fileName) {
 // ════════════════════════════════════════
 // LOCALSTORAGE STATE PERSISTENCE (v4 new — fix #14)
 // ════════════════════════════════════════
-function saveState() {
-  try {
-    var save = {
-      brand: S.brand, purpose: S.purpose, scene: S.scene, tone: S.tone, kw: S.kw,
-      w: S.w, h: S.h, dur: S.dur, crf: S.crf, fps: S.fps, cdc: S.cdc,
-      maxbr: S.maxbr, abr: S.abr, lbl: S.lbl,
-      clips: S.clips, expCnt: S.expCnt, done: S.done, currentStep: S.currentStep
-    };
-    localStorage.setItem('vp4_state', JSON.stringify(save));
-  } catch(e) { /* ignore quota errors */ }
+var _saveStateTimer = null;
+function saveState(immediate) {
+  // キー入力ごとの即時保存を避けてデバウンス（パフォーマンス最適化）
+  if (_saveStateTimer) clearTimeout(_saveStateTimer);
+  var delay = immediate ? 0 : 400;
+  _saveStateTimer = setTimeout(function() {
+    _saveStateTimer = null;
+    try {
+      var save = {
+        brand: S.brand, purpose: S.purpose, scene: S.scene, tone: S.tone, kw: S.kw,
+        w: S.w, h: S.h, dur: S.dur, crf: S.crf, fps: S.fps, cdc: S.cdc,
+        maxbr: S.maxbr, abr: S.abr, lbl: S.lbl,
+        clips: S.clips, expCnt: S.expCnt, done: S.done, currentStep: S.currentStep
+      };
+      localStorage.setItem('vp4_state', JSON.stringify(save));
+    } catch(e) { /* ignore quota errors */ }
+  }, delay);
 }
 function loadState() {
   try {
@@ -1978,16 +2040,23 @@ function updCD() {
 // NAVIGATION
 // ════════════════════════════════════════
 var stepMap = { s1:1, s2:2, s3:3, s4:4, s5:5, s6:6 };
+// ナビゲーション用キャッシュ（毎回querySelectorAllしない）
+var _cachedStages = null;
+var _cachedNavBtns = null;
 
 function gs(id) {
   S.currentStep = id;
+  // NodeListをキャッシュ（初回のみDOM走査）
+  if (!_cachedStages) _cachedStages = document.querySelectorAll('.stage');
+  if (!_cachedNavBtns) _cachedNavBtns = document.querySelectorAll('.sidebar .nb');
+
   // Hide all stages, show target
-  document.querySelectorAll('.stage').forEach(function(s) { s.classList.remove('active'); });
+  for (var si = 0; si < _cachedStages.length; si++) _cachedStages[si].classList.remove('active');
   var t = document.getElementById('stage-' + id);
   if (t) t.classList.add('active');
 
   // Update sidebar nav active state
-  document.querySelectorAll('.sidebar .nb').forEach(function(b) { b.classList.remove('active'); });
+  for (var ni = 0; ni < _cachedNavBtns.length; ni++) _cachedNavBtns[ni].classList.remove('active');
   var navBtn = document.getElementById('nav-' + id);
   if (navBtn) navBtn.classList.add('active');
 
@@ -3035,6 +3104,13 @@ function fillImgPromptFromBrand() {
   pickImgPrompt(Math.min(idx, preset.prompts.length - 1));
 }
 
+// 生成画像のBlobURL管理（メモリリーク防止）
+var _genImgBlobUrls = [];
+function _revokeGenImgBlobUrls() {
+  _genImgBlobUrls.forEach(function(u) { try { URL.revokeObjectURL(u); } catch(e){} });
+  _genImgBlobUrls = [];
+}
+
 function genImages() {
   var prompt = (document.getElementById('img-prompt').value || '').trim();
   if (!prompt) {
@@ -3056,7 +3132,8 @@ function genImages() {
 
   var grid = document.getElementById('img-grid');
   grid.style.display = 'grid';
-  // Show placeholders
+  // 以前の生成画像のBlobURLを解放してからグリッドをクリア
+  _revokeGenImgBlobUrls();
   grid.innerHTML = '';
   for (var k = 0; k < count; k++) {
     var ph = document.createElement('div');
@@ -3081,6 +3158,7 @@ function genImages() {
         })
         .then(function(blob) {
           var objUrl = URL.createObjectURL(blob);
+          _genImgBlobUrls.push(objUrl); // リーク防止: 後でまとめて解放
           var card = document.createElement('div');
           card.className = 'img-result';
           var ratio = imgW + 'x' + imgH;
@@ -3423,20 +3501,21 @@ function renderMedia(cat) {
   var grid = document.getElementById('media-grid');
   var empty = document.getElementById('media-empty');
   var items = cat === 'all' ? mediaStore : mediaStore.filter(function(m){ return m.cat === cat; });
+  // 既存のmedia-itemを一括削除（逐次removeより効率的）
+  var oldItems = grid.querySelectorAll('.media-item');
+  for (var oi = 0; oi < oldItems.length; oi++) oldItems[oi].remove();
   if (items.length === 0) {
     if (empty) empty.style.display = 'block';
-    // remove old items
-    grid.querySelectorAll('.media-item').forEach(function(el){ el.remove(); });
     return;
   }
   if (empty) empty.style.display = 'none';
-  grid.querySelectorAll('.media-item').forEach(function(el){ el.remove(); });
+  // DocumentFragmentで一括挿入（リフロー最小化）
+  var frag = document.createDocumentFragment();
   items.forEach(function(item) {
     var div = document.createElement('div');
     div.className = 'media-item';
     div.dataset.id = item.id;
     div.draggable = true;
-    div.addEventListener('dragstart', function(e){ e.dataTransfer.setData('mediaId', item.id); });
     var thumb = '';
     var blobUrl = mediaBlobMap[item.id] || '';
     if (item.cat === 'image' && blobUrl) {
@@ -3452,11 +3531,12 @@ function renderMedia(cat) {
       '<div class="media-name" title="' + item.name + '">' + item.name + '</div>' +
       '<div class="media-meta">' + sizeStr + (item.dur ? ' · ' + item.dur.toFixed(1) + 's' : '') + '</div>' +
       '<div class="media-actions">' +
-        '<button class="btn btn-g" style="padding:1px 5px;font-size:9px;" onclick="addMediaToTimeline(\'' + item.id + '\')">+TL</button>' +
-        '<button class="btn btn-g" style="padding:1px 5px;font-size:9px;" onclick="removeMedia(\'' + item.id + '\')">&#10005;</button>' +
+        '<button class="btn btn-g" style="padding:1px 5px;font-size:9px;" data-mid="' + item.id + '" data-act="tl">+TL</button>' +
+        '<button class="btn btn-g" style="padding:1px 5px;font-size:9px;" data-mid="' + item.id + '" data-act="rm">&#10005;</button>' +
       '</div>';
-    grid.appendChild(div);
+    frag.appendChild(div);
   });
+  grid.appendChild(frag); // 1回のDOM操作で全挿入
   // Update stats
   var totalSize = mediaStore.reduce(function(a,m){ return a + (m.size||0); }, 0);
   var countEl = document.getElementById('media-count');
@@ -3897,7 +3977,13 @@ function setLrMode(mode, btn) {
   document.querySelectorAll('.lr-mode-btn').forEach(function(b){ b.classList.remove('active'); });
   if (btn) btn.classList.add('active');
   var guide = document.getElementById('lr-iopaint-guide');
-  if (guide) guide.style.display = (mode === 'iopaint') ? 'block' : 'none';
+  if (guide) {
+    guide.style.display = (mode === 'iopaint') ? 'block' : 'none';
+    // IOPaintモードに切り替えたらガイドを画面内にスクロール
+    if (mode === 'iopaint') {
+      setTimeout(function() { guide.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+    }
+  }
   genLrCmd();
 }
 
@@ -4036,6 +4122,210 @@ function lrLoadFile(file) {
     outPath.value = base + '_removed.' + ext;
   }
   genLrCmd();
+}
+
+/* ─── タッチ操作対応（iOS / Android） ─── */
+function _lrTouch(e) {
+  var t = e.touches[0] || e.changedTouches[0];
+  return { clientX: t.clientX, clientY: t.clientY };
+}
+function lrTouchStart(e) {
+  e.preventDefault();
+  lrStartDrag(_lrTouch(e));
+}
+function lrTouchMove(e) {
+  e.preventDefault();
+  lrDrag(_lrTouch(e));
+}
+function lrTouchEnd(e) {
+  e.preventDefault();
+  lrEndDrag(_lrTouch(e));
+}
+
+/* ─── 複数領域管理 ─── */
+var _iopaintRegions = []; // [{x,y,w,h,startSec,endSec,label}]
+
+function addCurrentRegion() {
+  var x = parseInt(document.getElementById('lr-x').value)||0;
+  var y = parseInt(document.getElementById('lr-y').value)||0;
+  var w = parseInt(document.getElementById('lr-w').value)||1;
+  var h = parseInt(document.getElementById('lr-h').value)||1;
+  if (w < 1 || h < 1) { toast('座標を設定してください', 'warning'); return; }
+  var startSec = 0, endSec = 9999;
+  _iopaintRegions.push({ x, y, w, h, startSec, endSec, label: 'x=' + x + ' y=' + y + ' ' + w + '×' + h });
+  renderRegions();
+  toast('領域を追加しました（' + _iopaintRegions.length + '個）', 'success', 1500);
+}
+
+function clearRegions() {
+  _iopaintRegions = [];
+  renderRegions();
+  toast('領域をクリアしました', 'info', 1500);
+}
+
+function removeRegion(idx) {
+  _iopaintRegions.splice(idx, 1);
+  renderRegions();
+}
+
+function updateRegionTime(idx, field, val) {
+  if (_iopaintRegions[idx]) _iopaintRegions[idx][field] = parseFloat(val) || 0;
+}
+
+function renderRegions() {
+  var el = document.getElementById('iop-regions-list');
+  if (!el) return;
+  if (_iopaintRegions.length === 0) {
+    el.innerHTML = '<span style="color:var(--c3);">（領域未設定 — 座標を設定して「＋ 現在の領域を追加」）</span>';
+    return;
+  }
+  el.innerHTML = _iopaintRegions.map(function(r, i) {
+    return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;flex-wrap:wrap;">' +
+      '<span style="color:var(--acc);min-width:16px;">' + (i+1) + '.</span>' +
+      '<span style="color:var(--c1);flex:1;">x=' + r.x + ' y=' + r.y + ' w=' + r.w + ' h=' + r.h + '</span>' +
+      '<span style="color:var(--c3);">t=</span>' +
+      '<input type="number" value="' + r.startSec + '" min="0" step="0.5" style="width:44px;font-size:9px;background:var(--s3);border:1px solid var(--ln2);color:var(--c1);border-radius:3px;padding:1px 3px;" oninput="updateRegionTime(' + i + ',\'startSec\',this.value)">' +
+      '<span style="color:var(--c3);">〜</span>' +
+      '<input type="number" value="' + (r.endSec >= 9999 ? "" : r.endSec) + '" min="0" step="0.5" placeholder="終端" style="width:44px;font-size:9px;background:var(--s3);border:1px solid var(--ln2);color:var(--c1);border-radius:3px;padding:1px 3px;" oninput="updateRegionTime(' + i + ',\'endSec\',this.value||9999)">' +
+      '<span style="color:var(--c3);">秒</span>' +
+      '<button onclick="removeRegion(' + i + ')" style="background:rgba(255,68,85,.15);color:var(--red);border:1px solid rgba(255,68,85,.3);border-radius:3px;padding:0 5px;font-size:10px;cursor:pointer;">✕</button>' +
+      '</div>';
+  }).join('');
+}
+
+/* ─── IOPaint 自動起動 (serve.js経由) ─── */
+async function iopaintAutoStart() {
+  var model  = (document.querySelector('input[name="iop-model"]:checked') || {value:'lama'}).value;
+  var device = (document.querySelector('input[name="iop-dev"]:checked')   || {value:'cpu'}).value;
+  var dot = document.getElementById('iop-status-dot');
+  var lbl = document.getElementById('iop-status-lbl');
+  if (dot) dot.style.background = '#fa0';
+  if (lbl) lbl.textContent = '起動中...';
+  try {
+    var r = await fetch('/api/iopaint/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, device })
+    });
+    var d = await r.json();
+    if (d.ok) {
+      if (dot) dot.style.background = '#fa0';
+      if (lbl) lbl.textContent = d.message + ' (10〜20秒後に接続確認してください)';
+      toast('IOPaint起動指示を送信しました。約10〜20秒後に「接続確認」を押してください。', 'success', 5000);
+      setTimeout(checkIoPaintViaServer, 15000);
+    } else {
+      if (dot) dot.style.background = '#e44';
+      if (lbl) lbl.textContent = 'エラー: ' + d.error;
+      toast('IOPaint起動失敗: ' + d.error, 'error', 5000);
+    }
+  } catch(e) {
+    if (dot) dot.style.background = '#e44';
+    if (lbl) lbl.textContent = '接続失敗 — serve.js起動中か確認';
+    toast('serve.jsへの接続失敗。サーバーが起動しているか確認してください。', 'error');
+  }
+}
+
+/* ─── IOPaint ステータス確認 (serve.js経由) ─── */
+async function checkIoPaintViaServer() {
+  var dot = document.getElementById('iop-status-dot');
+  var lbl = document.getElementById('iop-status-lbl');
+  var ipEl = document.getElementById('iop-local-ip');
+  if (dot) dot.style.background = '#fa0';
+  if (lbl) lbl.textContent = '確認中...';
+  try {
+    var [sr, hr] = await Promise.all([
+      fetch('/api/iopaint/status', { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+      fetch('/health').then(r => r.json()).catch(() => ({}))
+    ]);
+    if (ipEl && hr.localIp) ipEl.textContent = '📱 モバイルアクセス: http://' + hr.localIp + ':8765';
+    if (sr.running) {
+      _iopaintConnected = true;
+      if (dot) dot.style.background = 'var(--grn)';
+      if (lbl) lbl.textContent = '接続済 — モデル: ' + (sr.model || 'lama');
+      toast('IOPaint接続OK', 'success', 2000);
+    } else {
+      _iopaintConnected = false;
+      if (dot) dot.style.background = '#e44';
+      if (lbl) lbl.textContent = '未接続 — 「⚡ IOPaint自動起動」を押してください';
+    }
+  } catch(e) {
+    if (dot) dot.style.background = '#e44';
+    if (lbl) lbl.textContent = '確認失敗: ' + e.message;
+  }
+}
+
+/* ─── IOPaint 動画一括処理（SSE） ─── */
+async function iopaintProcessVideo() {
+  var videoPath  = (document.getElementById('lr-input-path')  || {}).value || '';
+  var outputPath = (document.getElementById('lr-output-path') || {}).value || '';
+  var fps        = 30;
+  var quality    = 16;
+  var model      = (document.querySelector('input[name="iop-model"]:checked') || {value:'lama'}).value;
+
+  if (!videoPath) { toast('入力ファイルパスを入力してください', 'warning'); return; }
+  var regions = _iopaintRegions.length > 0 ? _iopaintRegions : (function() {
+    var x = parseInt(document.getElementById('lr-x').value)||0;
+    var y = parseInt(document.getElementById('lr-y').value)||0;
+    var w = parseInt(document.getElementById('lr-w').value)||0;
+    var h = parseInt(document.getElementById('lr-h').value)||0;
+    return (w > 0 && h > 0) ? [{x,y,w,h,startSec:0,endSec:9999}] : [];
+  })();
+  if (regions.length === 0) { toast('除去領域が未設定です。座標を入力するか領域リストに追加してください。', 'warning'); return; }
+
+  var prog    = document.getElementById('iop-video-progress');
+  var bar     = document.getElementById('iop-video-bar');
+  var msg     = document.getElementById('iop-video-msg');
+  var detail  = document.getElementById('iop-video-detail');
+  if (prog) prog.style.display = 'block';
+  if (bar)  bar.style.width = '3%';
+  if (msg)  msg.textContent = '処理開始中...';
+
+  try {
+    var resp = await fetch('/api/iopaint/process-video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoPath, outputPath: outputPath || undefined, regions, fps, quality, model })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    if (!resp.body) throw new Error('SSEストリームが取得できません');
+
+    var reader  = resp.body.getReader();
+    var decoder = new TextDecoder();
+    var buf     = '';
+
+    while (true) {
+      var chunk = await reader.read();
+      if (chunk.done) break;
+      buf += decoder.decode(chunk.value, { stream: true });
+      var lines = buf.split('\n');
+      buf = lines.pop();
+      lines.forEach(function(line) {
+        if (!line.startsWith('data: ')) return;
+        try {
+          var ev = JSON.parse(line.slice(6));
+          if (ev.type === 'progress') {
+            if (bar)  bar.style.width = (ev.pct || 0) + '%';
+            if (msg)  msg.textContent = ev.msg || '';
+            if (detail) detail.textContent = ev.cur ? ev.cur + '/' + ev.totalFrames + 'フレーム' : '';
+          } else if (ev.type === 'done') {
+            if (bar)   bar.style.width = '100%';
+            if (msg)   msg.textContent = '完了！ → ' + ev.outputPath;
+            if (detail) detail.textContent = ev.frames + 'フレーム処理 / ' + Math.round((ev.sizeBytes||0)/1024/1024*10)/10 + 'MB';
+            toast('IOPaint動画処理完了！ ' + ev.outputPath, 'success', 8000);
+            setTimeout(function() { if (prog) prog.style.display = 'none'; }, 10000);
+          } else if (ev.type === 'error') {
+            if (msg)  msg.textContent = '❌ エラー: ' + ev.error;
+            if (bar)  { bar.style.width = '100%'; bar.style.background = 'var(--red)'; }
+            toast('IOPaint処理エラー: ' + ev.error, 'error', 8000);
+          }
+        } catch(_) {}
+      });
+    }
+  } catch(e) {
+    if (msg)  msg.textContent = '❌ ' + e.message;
+    if (bar)  { bar.style.width = '100%'; bar.style.background = 'var(--red)'; }
+    toast('接続エラー: ' + e.message, 'error');
+  }
 }
 
 /* ─── IOPaint API 統合 ─── */
@@ -4369,20 +4659,43 @@ function recoverStorage() {
   // テンプレートチップ初期化
   renderTemplateChips();
 
-  // Start timers
+  // Start timers（IDを保持してリーク防止）
   updCD();
-  setInterval(updCD, 30000);
+  window._timerUpdCD = setInterval(updCD, 30000);
   onCfg();
   syncAll();
   updDurDisp();
 
   // VOICEVOX ローカル接続確認
   checkVV();
-  setInterval(checkVV, 30000);
+  window._timerCheckVV = setInterval(checkVV, 30000);
+
+  // ページ非表示時にタイマーを停止（バッテリー・通信節約）
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      clearInterval(window._timerUpdCD);
+      clearInterval(window._timerCheckVV);
+    } else {
+      updCD(); window._timerUpdCD = setInterval(updCD, 30000);
+      checkVV(); window._timerCheckVV = setInterval(checkVV, 30000);
+    }
+  });
 
   // Media Library init
   // IndexedDB からメディア読み込み
   loadMediaDB().then(function(){ safeRun(function(){ renderMedia('all'); }, 'media-init'); }).catch(function(e){ logError('[IDB] load: ' + e.message); });
+  // イベント委譲: media-gridボタン（個別addEventListener不要）
+  var mediaGrid = document.getElementById('media-grid');
+  if (mediaGrid) {
+    mediaGrid.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-mid]');
+      if (!btn) return;
+      var mid = btn.dataset.mid;
+      var act = btn.dataset.act;
+      if (act === 'tl') addMediaToTimeline(mid);
+      else if (act === 'rm') removeMedia(mid);
+    });
+  }
 
   // PWA Service Worker 登録
   if ('serviceWorker' in navigator) {
