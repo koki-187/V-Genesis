@@ -1,0 +1,26 @@
+{
+  "name": "V-Genesis — AI動画制作システム",
+  "short_name": "V-Genesis",
+  "description": "AIエージェント動画制作パイプライン",
+  "start_url": "./video-pipeline-v4.html",
+  "display": "standalone",
+  "background_color": "#06080e",
+  "theme_color": "#06080e",
+  "orientation": "landscape",
+  "categories": ["productivity", "utilities"],
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

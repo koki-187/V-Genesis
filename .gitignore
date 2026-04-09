@@ -36,3 +36,9 @@ config/secrets.yaml
 # Build outputs
 dist/
 output/
+
+# Legacy / deprecated
+video-pipeline-v3.html
+
+# Shortcuts
+*.lnk
