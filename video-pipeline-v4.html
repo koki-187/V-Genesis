@@ -417,7 +417,7 @@ textarea:focus{border-color:var(--acc);}
 .toast{
   pointer-events:auto;
   padding:10px 16px;border-radius:6px;font-family:var(--mon);font-size:11px;
-  border:1px solid;min-width:260px;max-width:400px;
+  border:1px solid;min-width:260px;max-width:420px;
   animation:toast-in .3s cubic-bezier(.4,0,.2,1);
   display:flex;align-items:flex-start;gap:8px;
   backdrop-filter:blur(12px);
@@ -427,6 +427,14 @@ textarea:focus{border-color:var(--acc);}
 .toast.t-info{background:rgba(0,200,255,.12);border-color:rgba(0,200,255,.3);color:var(--acc);}
 .toast.t-warn{background:rgba(255,179,0,.12);border-color:rgba(255,179,0,.3);color:var(--yel);}
 .toast.out{animation:toast-out .3s forwards;}
+.toast-msg{margin-bottom:6px;}
+.toast-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.toast-action-btn{
+  font-family:var(--mon);font-size:10px;padding:3px 10px;border-radius:4px;
+  border:1px solid currentColor;background:transparent;color:inherit;
+  cursor:pointer;opacity:.85;transition:opacity .15s;
+}
+.toast-action-btn:hover{opacity:1;background:rgba(255,255,255,.08);}
 @keyframes toast-in{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes toast-out{to{opacity:0;transform:translateY(20px)}}
 
@@ -1868,18 +1876,66 @@ var brands = {
 // ════════════════════════════════════════
 // TOAST SYSTEM (v4 new — replaces all alert() calls)
 // ════════════════════════════════════════
-function toast(msg, type, duration) {
+// toast(msg, type, duration, actions)
+// actions: [{label:'再試行', fn: function(){...}}, {label:'設定を開く', fn: function(){...}}]
+function toast(msg, type, duration, actions) {
   type = type || 'info';
-  duration = duration || 3500;
+  // アクションがある場合は少し長めに表示
+  duration = duration || (actions && actions.length ? 7000 : 3500);
   var box = document.getElementById('toast-box');
   var t = document.createElement('div');
   t.className = 'toast t-' + type;
-  t.textContent = msg;
+
+  // メッセージ部
+  var msgEl = document.createElement('div');
+  msgEl.className = 'toast-msg';
+  msgEl.textContent = msg;
+  t.appendChild(msgEl);
+
+  // アクションボタン部
+  if (actions && actions.length) {
+    var actRow = document.createElement('div');
+    actRow.className = 'toast-actions';
+    actions.forEach(function(act) {
+      var btn = document.createElement('button');
+      btn.className = 'toast-action-btn';
+      btn.textContent = act.label;
+      btn.onclick = function() {
+        t.classList.add('out');
+        setTimeout(function() { t.remove(); }, 300);
+        if (act.fn) act.fn();
+      };
+      actRow.appendChild(btn);
+    });
+    // 閉じるボタン
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-action-btn';
+    closeBtn.textContent = '✕';
+    closeBtn.style.marginLeft = 'auto';
+    closeBtn.onclick = function() {
+      t.classList.add('out');
+      setTimeout(function() { t.remove(); }, 300);
+    };
+    actRow.appendChild(closeBtn);
+    t.appendChild(actRow);
+  }
+
   box.appendChild(t);
-  setTimeout(function() {
+  var timer = setTimeout(function() {
     t.classList.add('out');
-    setTimeout(function() { t.remove(); }, 300);
+    setTimeout(function() { if(t.parentNode) t.remove(); }, 300);
   }, duration);
+
+  // アクションボタンがある場合はホバー中はタイマーを一時停止
+  if (actions && actions.length) {
+    t.addEventListener('mouseenter', function() { clearTimeout(timer); });
+    t.addEventListener('mouseleave', function() {
+      timer = setTimeout(function() {
+        t.classList.add('out');
+        setTimeout(function() { if(t.parentNode) t.remove(); }, 300);
+      }, 2000);
+    });
+  }
 }
 
 // ════════════════════════════════════════
@@ -2283,9 +2339,18 @@ function genAll() {
     logError('API呼び出し失敗: ' + errMsg);
     // v4: Clear toast with specific error info, not silent failure
     if (errMsg.indexOf('Failed to fetch') > -1 || errMsg.indexOf('NetworkError') > -1) {
-      toast('CORSエラーまたはネットワークエラー。プロキシURL設定をご確認ください。プリセットを読み込みます。', 'error', 5000);
+      toast('ネットワークエラー — プリセットで続行', 'error', 8000, [
+        { label: 'STEP1設定を確認', fn: function() { gs('s1'); } },
+        { label: 'プロキシURL確認', fn: function() {
+          var u = localStorage.getItem('vp4_proxy_url') || '未設定';
+          toast('現在のプロキシURL: ' + u, 'info', 5000);
+        }}
+      ]);
     } else {
-      toast('API失敗: ' + errMsg.substring(0, 100) + ' → プリセットにフォールバック', 'error', 5000);
+      toast('API失敗 — プリセットで続行', 'error', 8000, [
+        { label: 'APIキー設定', fn: function() { gs('s1'); toast('STEP1でAPIキーを確認してください', 'info', 4000); } },
+        { label: 'エラー詳細', fn: function() { toast(errMsg.substring(0, 150), 'error', 8000); } }
+      ]);
     }
     loadPreset(true);
   }).finally(function() {
@@ -2803,13 +2868,19 @@ function execFfmpegCmd() {
       resEl.style.background = 'rgba(255,68,85,.08)';
       resEl.style.color = 'var(--red)';
       resEl.textContent = '❌ エラー: ' + (d.error || d.stderr || '不明なエラー').substring(0, 300);
-      toast('FFmpeg実行エラー。コマンドを確認してPowerShellで手動実行してください。', 'error', 6000);
+      toast('FFmpeg実行エラー', 'error', 8000, [
+        { label: 'コマンドをコピー', fn: function() { cpEl('s5-cmd'); } },
+        { label: 'エラーログを確認', fn: function() { document.getElementById('error-log').scrollIntoView({behavior:'smooth'}); } }
+      ]);
     }
   }).catch(function(e) {
     resEl.style.background = 'rgba(255,68,85,.08)';
     resEl.style.color = 'var(--red)';
     resEl.textContent = '❌ サーバーへの接続失敗: ' + e.message + ' — serve.jsが起動していることを確認してください。';
-    toast('サーバーに接続できません。Node.jsサーバーを起動してください。', 'error', 6000);
+    toast('サーバーに接続できません', 'error', 8000, [
+      { label: 'サーバー起動方法', fn: function() { gs('s1'); toast('STEP1のセットアップからNode.jsサーバーを起動してください', 'info', 5000); } },
+      { label: 'コマンドコピー', fn: function() { navigator.clipboard && navigator.clipboard.writeText('node serve.js').then(function(){ toast('コピー完了: node serve.js', 'success', 2000); }); } }
+    ]);
   });
 }
 
@@ -4110,7 +4181,9 @@ function lrLoadFile(file) {
       lrDrawBox();
       toast('動画を読み込みました (' + _lrNatW + '×' + _lrNatH + ')  0.5秒フレームをプレビュー中', 'success', 3000);
     };
-    vid.onerror = function() { URL.revokeObjectURL(url); toast('動画の読み込みに失敗しました', 'error'); };
+    vid.onerror = function() { URL.revokeObjectURL(url); toast('動画の読み込みに失敗しました', 'error', 6000, [
+      { label: '別のファイルを選択', fn: function() { document.getElementById('lr-file-in').click(); } }
+    ]); };
   }
   // パスを自動セット（ファイル名のみ）
   var inPath = document.getElementById('lr-input-path');
@@ -4216,12 +4289,19 @@ async function iopaintAutoStart() {
     } else {
       if (dot) dot.style.background = '#e44';
       if (lbl) lbl.textContent = 'エラー: ' + d.error;
-      toast('IOPaint起動失敗: ' + d.error, 'error', 5000);
+      toast('IOPaint起動失敗', 'error', 8000, [
+        { label: '再試行', fn: function() { iopaintAutoStart(); } },
+        { label: 'コマンドをコピー', fn: function() { cpEl('lr-iop-run'); } },
+        { label: 'ログ確認', fn: function() { document.getElementById('error-log').scrollIntoView({behavior:'smooth'}); } }
+      ]);
     }
   } catch(e) {
     if (dot) dot.style.background = '#e44';
     if (lbl) lbl.textContent = '接続失敗 — serve.js起動中か確認';
-    toast('serve.jsへの接続失敗。サーバーが起動しているか確認してください。', 'error');
+    toast('serve.js接続失敗', 'error', 8000, [
+      { label: 'serve.js起動', fn: function() { navigator.clipboard && navigator.clipboard.writeText('node serve.js').then(function(){ toast('コピー済: node serve.js', 'success', 2000); }); } },
+      { label: '接続確認', fn: function() { checkIoPaintViaServer(); } }
+    ]);
   }
 }
 
@@ -4316,7 +4396,11 @@ async function iopaintProcessVideo() {
           } else if (ev.type === 'error') {
             if (msg)  msg.textContent = '❌ エラー: ' + ev.error;
             if (bar)  { bar.style.width = '100%'; bar.style.background = 'var(--red)'; }
-            toast('IOPaint処理エラー: ' + ev.error, 'error', 8000);
+            toast('IOPaint処理エラー', 'error', 10000, [
+              { label: '再試行', fn: function() { iopaintProcessVideo(); } },
+              { label: 'スクリプト生成', fn: function() { iopaintBatchScript(); } },
+              { label: 'IOPaint UI', fn: function() { window.open('http://localhost:8081', '_blank'); } }
+            ]);
           }
         } catch(_) {}
       });
@@ -4324,7 +4408,11 @@ async function iopaintProcessVideo() {
   } catch(e) {
     if (msg)  msg.textContent = '❌ ' + e.message;
     if (bar)  { bar.style.width = '100%'; bar.style.background = 'var(--red)'; }
-    toast('接続エラー: ' + e.message, 'error');
+    toast('接続エラー: ' + e.message.substring(0,60), 'error', 10000, [
+      { label: '⚡ IOPaint起動', fn: function() { iopaintAutoStart(); } },
+      { label: '接続確認', fn: function() { checkIoPaintViaServer(); } },
+      { label: '再試行', fn: function() { setTimeout(iopaintProcessVideo, 2000); } }
+    ]);
   }
 }
 
