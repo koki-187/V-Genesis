@@ -1679,7 +1679,7 @@ Write-Host "Setup complete: ffmpeg, node, claude, python"</div>
   </div>
   <!-- v4: Error Log Panel -->
   <div>
-    <div class="rpl">エラーログ</div>
+    <div class="rpl" style="display:flex;align-items:center;justify-content:space-between;">エラーログ<button class="qab" onclick="clearErrorLog()" style="padding:1px 6px;font-size:9px;margin:0;background:var(--s3);">クリア</button></div>
     <div class="error-log" id="error-log">
       <div style="font-family:var(--mon);font-size:9px;color:var(--c3);padding:4px;">エラーはありません</div>
     </div>
@@ -1757,6 +1757,11 @@ function renderErrorLog() {
     return '<div class="error-log-item"><span class="elt">[' + e.time + ']</span>' + e.msg + '</div>';
   }).join('');
   el.scrollTop = el.scrollHeight;
+}
+function clearErrorLog() {
+  errorLogs = [];
+  renderErrorLog();
+  toast('エラーログをクリアしました', 'info');
 }
 
 // ════════════════════════════════════════
@@ -3749,16 +3754,18 @@ function safeRun(fn, label) {
 
 // init時のlocalStorageリカバリー
 function recoverStorage() {
-  var keys = ['vp4_state','vp4_api_key','vp4_proxy_url','vp4_beginner'];
-  keys.forEach(function(k) {
+  // JSONとして検証するキー（vp4_stateのみ）
+  var jsonKeys = ['vp4_state'];
+  jsonKeys.forEach(function(k) {
     try {
       var v = localStorage.getItem(k);
-      if (v) JSON.parse(v); // validate JSON
+      if (v) JSON.parse(v);
     } catch(e) {
       localStorage.removeItem(k);
       logError('[Storage] ' + k + ' が破損していたため削除しました');
     }
   });
+  // 文字列キーはJSON.parseしない（api_key, proxy_url, beginner等）
 }
 
 // ════════════════════════════════════════
