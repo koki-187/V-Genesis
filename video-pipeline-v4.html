@@ -2048,8 +2048,12 @@ function genAll() {
   });
 }
 
+// 既知セクションヘッダーのみで区切る（コンテンツ内の【】誤分割を防止）
+var _KNOWN_SECS = ['動画プロンプト','ナレーション原稿','テキストオーバーレイ','BGM・シーン構成メモ','冒頭3秒フック文','SEOタイトル','SEO説明文','SEOタグ'];
 function exSec(text, hdr) {
-  var re = new RegExp('【' + hdr + '】\\s*([\\s\\S]*?)(?=【|$)', 'i');
+  var boundary = _KNOWN_SECS.filter(function(s){ return s !== hdr; })
+    .map(function(s){ return '【' + s + '】'; }).join('|');
+  var re = new RegExp('【' + hdr + '】\\s*([\\s\\S]*?)(?=' + boundary + '|$)', 'i');
   var m = text.match(re);
   return m ? m[1].trim() : '';
 }
