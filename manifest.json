@@ -2,7 +2,7 @@
   "name": "V-Genesis — AI動画制作システム",
   "short_name": "V-Genesis",
   "description": "AIエージェント動画制作パイプライン",
-  "start_url": "./video-pipeline-v4.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#06080e",
   "theme_color": "#06080e",

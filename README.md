@@ -18,6 +18,10 @@ Research → Script → Visual → Production → QA → Publish → Monitor
 2. `brief.yaml` に動画の概要を記入
 3. エージェントパイプラインを実行
 
+## デプロイ
+- GitHub Pages: `https://koki-187.github.io/V-Genesis/`
+- ローカル起動: `node serve.js`（ポート 8765）
+
 ## 設定
 - `config/pipeline.yaml` - パイプライン定義
 - `config/video-types.yaml` - 動画タイプ設定

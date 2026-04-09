@@ -2,7 +2,7 @@
 const CACHE_NAME = 'v-genesis-v5';
 const ASSETS = [
   './',
-  './video-pipeline-v4.html',
+  './index.html',
   './manifest.json'
 ];
 
