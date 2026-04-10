@@ -1689,7 +1689,7 @@ body.beginner-mode .now-action{display:flex;}
     <div class="sh-su">プラットフォーム別プリセットで書き出し、DaVinci Resolveで最終仕上げ</div>
   </div>
   <div class="sb">
-    <div class="beginner-hint">最後のステップです。動画をどのSNSに投稿するか選んで「書き出し」ボタンを押してください。コマンドがコピーされるのでPowerShellで実行します。</div>
+    <div class="beginner-hint">最後のステップです。動画をどのSNSに投稿するか選んで「書き出し」ボタンを押してください。serve.jsが起動中なら自動で変換されます。起動していない場合はDaVinci Resolveから書き出してください。</div>
     <div class="r2">
       <div class="card">
         <div class="cl">Instagram Reel</div>
@@ -3560,7 +3560,7 @@ function updateModeLabels() {
   var curLbl = document.getElementById('mode-current-label');
   if (proLbl) proLbl.style.opacity = isEasy ? '0.35' : '1';
   if (easyLbl) easyLbl.style.opacity = isEasy ? '1' : '0.35';
-  if (curLbl) curLbl.textContent = '(現在)';
+  if (curLbl) curLbl.textContent = isEasy ? '現在: かんたんモード' : '現在: 詳細モード';
 }
 
 // ════════════════════════════════════════
