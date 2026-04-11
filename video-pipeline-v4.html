@@ -953,6 +953,49 @@ body.beginner-mode .now-action{display:flex;}
         <button class="btn btn-g" onclick="cpOpen('s3-pb','https://klingai.com')">Kling AI</button>
       </div>
     </div>
+    <!-- ── 外部ツール取り込みガイド ── -->
+    <div class="card" id="import-guide-card">
+      <div class="cl" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="this.parentNode.querySelector('.import-guide-body').style.display=this.parentNode.querySelector('.import-guide-body').style.display==='none'?'block':'none'">
+        <span>📥 外部AIツールで作った動画のアップロード手順</span>
+        <span style="font-size:10px;color:var(--c3);">クリックで開閉</span>
+      </div>
+      <div class="import-guide-body">
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--s2);border-radius:8px;">
+            <div style="min-width:28px;height:28px;background:var(--acc);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;">1</div>
+            <div>
+              <div style="font-weight:600;margin-bottom:2px;">プロンプトをコピーして外部ツールで動画生成</div>
+              <div style="font-size:11px;color:var(--c2);">上の「生成プロンプト」をコピー →「Soraで開く」「Kling AI」等のボタンで外部ツールを開く → プロンプトを貼り付けて動画を生成する</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--s2);border-radius:8px;">
+            <div style="min-width:28px;height:28px;background:var(--acc);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;">2</div>
+            <div>
+              <div style="font-weight:600;margin-bottom:2px;">生成した動画をPCにダウンロード保存</div>
+              <div style="font-size:11px;color:var(--c2);">外部ツールの「ダウンロード」ボタンでMP4ファイルをPCに保存する（例: Downloads/clip_001.mp4）</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--s2);border-radius:8px;">
+            <div style="min-width:28px;height:28px;background:var(--acc);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;">3</div>
+            <div>
+              <div style="font-weight:600;margin-bottom:2px;">メディアライブラリにアップロード</div>
+              <div style="font-size:11px;color:var(--c2);">左サイドバーの「メディアライブラリ」タブ →「ファイル追加」エリアに保存したMP4をドラッグ＆ドロップ（またはクリックして選択）</div>
+              <button class="btn btn-g" style="margin-top:6px;font-size:11px;padding:3px 10px;" onclick="gs('media')">📂 メディアライブラリを開く</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--s2);border-radius:8px;">
+            <div style="min-width:28px;height:28px;background:var(--acc);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;">4</div>
+            <div>
+              <div style="font-weight:600;margin-bottom:2px;">タイムラインに追加</div>
+              <div style="font-size:11px;color:var(--c2);">メディアライブラリに表示されたクリップの「+ タイムライン」ボタンをクリック → 下のタイムラインに追加される → 複数クリップを並べて動画を構成する</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:8px;background:rgba(var(--acc-rgb,96,165,250),0.08);border-left:3px solid var(--acc);border-radius:0 4px 4px 0;font-size:11px;color:var(--c2);">
+          💡 <strong>ヒント:</strong> AI画像生成（下のカード）なら外部ツール不要で無料・即座に素材を作れます。まずはこちらをお試しください。
+        </div>
+      </div>
+    </div>
     <!-- ── AI画像生成（Pollinations.ai / FLUX） ── -->
     <div class="card" id="img-gen-card">
       <div class="cl">AI画像生成 <span class="badge b-free" style="background:var(--grn);color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;">無料・APIキー不要</span></div>
@@ -1043,6 +1086,7 @@ body.beginner-mode .now-action{display:flex;}
         </div>
         <div class="brow" style="margin-top:4px;">
           <button class="btn btn-ai" onclick="previewNarSpeech()" title="ブラウザ内蔵音声でプレビュー（インストール不要）">&#9654; 試し聴き</button>
+          <button class="btn btn-g" id="nar-rec-btn" onclick="recordNarrationWAV()" title="マイクで音声を録音してダウンロード（VOICEVOXなしで利用可）">&#127908; 録音して保存</button>
           <button class="btn btn-p" onclick="openVV()">VOICEVOXで生成</button>
           <button class="btn btn-g" onclick="launchVoicevox()">VOICEVOX起動</button>
           <button class="btn btn-g" onclick="cpf('s4-nar')" title="ナレーション原稿をクリップボードにコピー">テキストをコピー</button>
@@ -3732,6 +3776,85 @@ function saveNarToDrive() {
   window.open('https://drive.google.com/drive/folders/' + DRIVE_VOICE_FOLDER_ID, '_blank');
 }
 
+// ── ブラウザTTS録音 → WebM/WAVダウンロード ───────────────────────
+var _narRecorder = null;
+var _narRecChunks = [];
+var _narRecording = false;
+
+async function recordNarrationWAV() {
+  if (_narRecording) {
+    stopNarRecording();
+    return;
+  }
+  var text = document.getElementById('s4-nar').value.trim();
+  if (!text) { toast('ナレーション原稿を入力してください', 'warning'); return; }
+  if (!window.MediaRecorder) { toast('お使いのブラウザはMediaRecorderに対応していません（Chrome推奨）', 'error'); return; }
+
+  var stream;
+  try {
+    // First try: capture current tab audio (Chrome 94+ only)
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      audio: { suppressLocalAudioPlayback: false },
+      video: { displaySurface: 'browser', width: 1, height: 1 }
+    });
+    stream.getVideoTracks().forEach(function(t){ t.stop(); });
+  } catch(e1) {
+    try {
+      // Fallback: microphone recording
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      toast('マイクで録音します。スピーカーからの音も拾われます。', 'info', 4000);
+    } catch(e2) {
+      toast('音声キャプチャに失敗しました。マイクを許可してください。', 'error');
+      return;
+    }
+  }
+
+  _narRecChunks = [];
+  _narRecording = true;
+  var mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+  _narRecorder = new MediaRecorder(stream, { mimeType: mime });
+  _narRecorder.ondataavailable = function(e) { if (e.data.size > 0) _narRecChunks.push(e.data); };
+  _narRecorder.onstop = function() {
+    stream.getTracks().forEach(function(t){ t.stop(); });
+    _narRecording = false;
+    var blob = new Blob(_narRecChunks, { type: _narRecorder.mimeType || 'audio/webm' });
+    var ext = (_narRecorder.mimeType || '').includes('ogg') ? 'ogg' : 'webm';
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'narration.' + ext;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    var btn = document.getElementById('nar-rec-btn');
+    if (btn) btn.textContent = '\u127908 録音して保存';
+    toast('音声をダウンロードしました（' + ext + '形式）', 'success', 4000);
+  };
+
+  _narRecorder.start(100);
+  var btn = document.getElementById('nar-rec-btn');
+  if (btn) btn.textContent = '\u23f9 録音停止・保存';
+
+  // Play TTS and auto-stop after it ends
+  var utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'ja-JP';
+  utt.rate = 0.9;
+  utt.onend = function() {
+    setTimeout(stopNarRecording, 700);
+  };
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utt);
+
+  toast('\ud83d\udd34 録音中... TTS再生終了後に自動保存します', 'info', 12000);
+}
+
+function stopNarRecording() {
+  if (_narRecorder && _narRecording) {
+    window.speechSynthesis.cancel();
+    _narRecorder.stop();
+  }
+}
+
 // ════════════════════════════════════════
 // BEGINNER / PRO MODE (v4 new — fix #16)
 // ════════════════════════════════════════
@@ -4022,13 +4145,48 @@ function addClipToTimeline() {
   addMediaToTimeline(pick.id);
 }
 
+function extractVideoThumbnail(mediaId, callback) {
+  var url = mediaBlobMap[mediaId];
+  if (!url) { callback(null); return; }
+  var vid = document.createElement('video');
+  vid.muted = true;
+  vid.playsInline = true;
+  vid.preload = 'metadata';
+  vid.src = url;
+  var done = false;
+  vid.onloadeddata = function() {
+    vid.currentTime = Math.min(0.5, (vid.duration || 1) * 0.1);
+  };
+  vid.onseeked = function() {
+    if (done) return; done = true;
+    try {
+      var cv = document.createElement('canvas');
+      cv.width = 80; cv.height = 46;
+      cv.getContext('2d').drawImage(vid, 0, 0, 80, 46);
+      callback(cv.toDataURL('image/jpeg', 0.65));
+    } catch(e) { callback(null); }
+    vid.src = '';
+  };
+  vid.onerror = function() { if (!done) { done = true; callback(null); } };
+  setTimeout(function(){ if (!done) { done = true; callback(null); vid.src = ''; } }, 3000);
+}
+
 function addMediaToTimeline(mediaId) {
   var item = mediaStore.find(function(m){ return m.id === mediaId; });
   if (!item) { toast('素材が見つかりません', 'error'); return; }
-  var clip = { id: 'clip_' + Date.now(), mediaId: mediaId, name: item.name, dur: item.dur || S.dur || 10, color: '#' + Math.floor(Math.random()*0x1000000).toString(16).padStart(6,'0') };
+  var clip = { id: 'clip_' + Date.now(), mediaId: mediaId, name: item.name, dur: item.dur || S.dur || 10, color: '#' + Math.floor(Math.random()*0x1000000).toString(16).padStart(6,'0'), thumb: null };
   tlClips.push(clip);
   renderTimeline();
   toast(item.name + ' をタイムラインに追加', 'success', 2000);
+  // Async thumbnail extraction
+  if (item.type && item.type.startsWith('video/')) {
+    extractVideoThumbnail(mediaId, function(dataUrl) {
+      if (dataUrl) { clip.thumb = dataUrl; renderTimeline(); }
+    });
+  } else if (item.type && item.type.startsWith('image/')) {
+    var imgUrl = mediaBlobMap[mediaId];
+    if (imgUrl) { clip.thumb = imgUrl; renderTimeline(); }
+  }
 }
 
 function dropClipToTimeline(e) {
@@ -4075,7 +4233,11 @@ function renderTimeline() {
     el.className = 'tl-clip';
     el.draggable = true;
     var hue = parseInt(clip.color.slice(1,3), 16);
-    el.style.background = 'linear-gradient(135deg, hsl(' + (hue*1.4%360) + ',60%,25%), hsl(' + ((hue*1.4+40)%360) + ',60%,35%))';
+    if (clip.thumb) {
+      el.style.background = 'linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.55)), url(' + clip.thumb + ') center/cover no-repeat';
+    } else {
+      el.style.background = 'linear-gradient(135deg, hsl(' + (hue*1.4%360) + ',60%,25%), hsl(' + ((hue*1.4+40)%360) + ',60%,35%))';
+    }
     var shortName = clip.name.length > 12 ? clip.name.slice(0,10) + '..' : clip.name;
     el.innerHTML =
       '<span class="clip-del" onclick="removeClipFromTimeline(\'' + clip.id + '\')" title="削除">&#10005;</span>' +
