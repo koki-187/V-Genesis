@@ -4392,6 +4392,7 @@ var LUT_NAMES = {
 };
 
 function applyLut(lut, el) {
+  window._currentLut = lut; // buildTlConcatCmd / buildSingleCmd で参照
   document.querySelectorAll('.lut-chip').forEach(function(c){ c.classList.remove('active-lut'); });
   if (el) el.classList.add('active-lut');
   var cmdRow = document.getElementById('lut-cmd-row');
