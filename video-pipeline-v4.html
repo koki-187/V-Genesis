@@ -2823,6 +2823,7 @@ function addClip(name, dur, ratio) {
   saveMediaItem(genItem, null);
   renderMedia(_mediaCat);
   renderTL();
+  addMediaToTimeline(genItem.id);
   updStats();
   document.getElementById('btn-s4').disabled = false;
   var badge = document.getElementById('tl-badge');
@@ -3056,9 +3057,69 @@ function updSpecs() {
   document.getElementById('sp-use').textContent = um[rs] || S.lbl;
 }
 
+// ── tlClips ベースのマルチクリップ concat コマンド生成 ──────────────
+function buildTlConcatCmd() {
+  if (tlClips.length === 0) return null;
+  var outDir = 'C:\\VideoProduction\\edited';
+  var exDir  = 'C:\\VideoProduction\\exports';
+  var w = S.w || 1080, h = S.h || 1920, fps = S.fps || 30;
+  var vf0 = buildVF(w, h);
+  var lut = (window._currentLut && LUT_FILTERS[window._currentLut]) ? ',' + LUT_FILTERS[window._currentLut] : '';
+  var outName = S.lbl.replace(/\s/g,'_') + '_tl_' + w + 'x' + h + '.mp4';
+
+  if (tlClips.length === 1) {
+    var c = tlClips[0];
+    var ti = (c.trimIn || 0).toFixed(2), to = (c.trimOut !== undefined ? c.trimOut : c.dur).toFixed(2);
+    return '# OUTPUT (1クリップ): ' + c.name + ' | trim=' + ti + '-' + to + 's\n\n'
+      + 'ffmpeg -i "' + outDir + '\\' + c.name.replace(/[<>:"/\\|?*]/g,'_') + '"'
+      + ' -ss ' + ti + ' -to ' + to
+      + ' -vf "' + vf0 + ',fps=' + fps + lut + '"'
+      + ' -c:v ' + S.cdc + ' -crf ' + S.crf + ' -preset slow'
+      + ' -maxrate ' + S.maxbr + 'k -bufsize ' + (S.maxbr*2) + 'k'
+      + ' -c:a aac -b:a ' + S.abr + 'k -ar 44100 -movflags +faststart'
+      + ' "' + exDir + '\\' + outName + '"\n\nWrite-Host "完了: ' + outName + '"';
+  }
+
+  // 複数クリップ: filter_complex concat
+  var inputs = tlClips.map(function(c){
+    return '-i "' + outDir + '\\' + c.name.replace(/[<>:"/\\|?*]/g,'_') + '"';
+  }).join(' ');
+  var parts = [], vLabels = [], aLabels = [];
+  tlClips.forEach(function(c, i) {
+    var ti = (c.trimIn || 0).toFixed(2);
+    var to = (c.trimOut !== undefined ? c.trimOut : c.dur).toFixed(2);
+    var tr = (i > 0 && TL_TRANS_FFMPEG[tlTrans]) ? ',' + TL_TRANS_FFMPEG[tlTrans] : '';
+    parts.push('[' + i + ':v]trim=start=' + ti + ':end=' + to
+      + ',setpts=PTS-STARTPTS,' + vf0 + ',fps=' + fps + lut + tr + '[v' + i + ']');
+    parts.push('[' + i + ':a]atrim=start=' + ti + ':end=' + to + ',asetpts=PTS-STARTPTS[a' + i + ']');
+    vLabels.push('[v' + i + ']');
+    aLabels.push('[a' + i + ']');
+  });
+  parts.push(vLabels.join('') + 'concat=n=' + tlClips.length + ':v=1:a=0[vout]');
+  parts.push(aLabels.join('') + 'concat=n=' + tlClips.length + ':v=0:a=1[aout]');
+  var names = tlClips.map(function(c){return c.name;}).join(', ');
+  return '# OUTPUT (' + tlClips.length + 'クリップ concat): ' + names + '\n\n'
+    + 'ffmpeg ' + inputs
+    + ' -filter_complex "' + parts.join(';') + '"'
+    + ' -map "[vout]" -map "[aout]"'
+    + ' -c:v ' + S.cdc + ' -crf ' + S.crf + ' -preset slow'
+    + ' -maxrate ' + S.maxbr + 'k -bufsize ' + (S.maxbr*2) + 'k'
+    + ' -c:a aac -b:a ' + S.abr + 'k -ar 44100 -movflags +faststart'
+    + ' "' + exDir + '\\' + outName + '"\n\nWrite-Host "完了: ' + outName + '"';
+}
+
 // v4 fix #9: buildSingleCmd — PowerShell compatible (no backslash continuation)
 // v4 fix #4: If dur is from "任意" chip (0), omit -t option
 function buildSingleCmd() {
+  // tlClipsが存在する場合はマルチクリップコマンドを生成
+  if (tlClips.length > 0) {
+    var tlCmd = buildTlConcatCmd();
+    if (tlCmd) {
+      document.getElementById('cmd-ti').textContent = 'FFmpeg --- タイムライン ' + tlClips.length + 'クリップ concat';
+      document.getElementById('cmd-bd').textContent = tlCmd;
+      return;
+    }
+  }
   var r = gcd(S.w, S.h), rs = (S.w / r) + ':' + (S.h / r);
   var cl = { libx264: 'H.264', libx265: 'H.265', 'libvpx-vp9': 'VP9', prores_ks: 'ProRes' };
   document.getElementById('cmd-ti').textContent = 'FFmpeg --- ' + S.lbl + ' ' + S.w + 'x' + S.h + ' / ' + S.dur + 's / ' + S.fps + 'fps / CRF' + S.crf;
@@ -4033,7 +4094,7 @@ function renderMedia(cat) {
     if (item.cat === 'image' && blobUrl) {
       thumb = '<img class="media-thumb" src="' + blobUrl + '" alt="' + item.name + '">';
     } else if (item.cat === 'video' && blobUrl) {
-      thumb = '<video class="media-thumb" src="' + blobUrl + '" muted></video>';
+      thumb = '<video class="media-thumb" src="' + blobUrl + '" muted preload="metadata" onloadedmetadata="this.currentTime=0.5"></video>';
     } else {
       var emoji = item.cat === 'audio' ? '&#127925;' : item.cat === 'video' ? '&#127902;' : item.cat === 'gen' ? '&#9889;' : '&#128190;';
       thumb = '<div class="media-thumb-placeholder">' + emoji + '</div>';
@@ -4112,12 +4173,11 @@ function removeMedia(id) {
 }
 
 function clearMedia() {
-  if (!confirm('すべての素材を削除しますか？')) return;
   mediaStore.forEach(function(m) { deleteMediaItem(m.id); });
   mediaStore = [];
   mediaBlobMap = {};
   renderMedia(_mediaCat);
-  toast('メディアライブラリをクリアしました', 'info');
+  toast('すべての素材を削除しました', 'info');
 }
 
 function syncDrive() {
@@ -4297,7 +4357,7 @@ function renderTimeline() {
         '<span style="font-size:7px;color:rgba(255,255,255,.5);">OUT</span>' +
       '</div>';
     track.appendChild(el);
-    totalDur += clip.dur;
+    totalDur += (clip.trimOut !== undefined ? clip.trimOut : clip.dur) - (clip.trimIn || 0);
   });
   if (countEl) countEl.textContent = tlClips.length;
   if (durEl) durEl.textContent = totalDur.toFixed(1) + 's';
@@ -4953,12 +5013,12 @@ async function checkIoPaint() {
 
 async function iopaintPreview() {
   var canvas = document.getElementById('lr-canvas');
-  if (!canvas || !canvas.width) { alert('まず動画/画像をドロップしてください'); return; }
+  if (!canvas || !canvas.width) { toast('まず動画/画像をドロップしてください', 'warning'); return; }
   var x = parseInt(document.getElementById('lr-x').value)||0;
   var y = parseInt(document.getElementById('lr-y').value)||0;
   var w = parseInt(document.getElementById('lr-w').value)||200;
   var h = parseInt(document.getElementById('lr-h').value)||80;
-  if (w < 1 || h < 1) { alert('除去エリアを選択してください'); return; }
+  if (w < 1 || h < 1) { toast('除去エリアを選択してください', 'warning'); return; }
 
   var status = document.getElementById('iop-proc-status');
   var prevArea = document.getElementById('iop-preview-area');
