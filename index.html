@@ -1042,13 +1042,8 @@ body.beginner-mode .now-action{display:flex;}
         <div class="tlh"><span>VIDEO TRACK</span><span id="tl-tot">合計: 0秒</span></div>
         <div class="tlt" id="tl-tr"><div class="tle">クリップを追加してください</div></div>
       </div>
-      <div class="cg">
-        <div class="cc2" onclick="addClip('SMP_before_after.mp4','10s')"><div class="ci">*</div><div class="cn2">SMP ビフォーアフター</div><div class="cd">10s / 9:16</div></div>
-        <div class="cc2" onclick="addClip('SMP_closeup.mp4','8s')"><div class="ci">+</div><div class="cn2">施術クローズアップ</div><div class="cd">8s / 9:16</div></div>
-        <div class="cc2" onclick="addClip('SMP_lifestyle.mp4','8s')"><div class="ci">~</div><div class="cn2">ライフスタイル</div><div class="cd">8s / 9:16</div></div>
-        <div class="cc2" onclick="addClip('Property_exterior.mp4','15s')"><div class="ci">H</div><div class="cn2">物件 外観</div><div class="cd">15s / 16:9</div></div>
-        <div class="cc2" onclick="addClip('Property_interior.mp4','12s')"><div class="ci">I</div><div class="cn2">物件 室内</div><div class="cd">12s / 16:9</div></div>
-        <div class="cc2" onclick="openCustomClipModal()"><div class="ci">+</div><div class="cn2">カスタム追加</div><div class="cd">手動指定</div></div>
+      <div class="cg" id="clip-template-grid">
+        <!-- JS で renderClipTemplates() により動的生成 -->
       </div>
     </div>
     <div class="brow">
@@ -2371,6 +2366,7 @@ function onCfg() {
   cfgPrev.appendChild(document.createElement('br'));
   cfgPrev.appendChild(document.createTextNode('ターゲット：' + b.tgt));
   renderTemplateChips();
+  renderClipTemplates();
   saveState();
 }
 
@@ -2805,6 +2801,42 @@ function confirmCustomClip() {
   addClip(name, dur + 's', ratio);
 }
 
+// ── ブランド連動クリップテンプレート生成 ────────────────────────────
+var CLIP_TEMPLATES = {
+  beauty:    [['冒頭フック（ビフォー）','08s','9:16'],['施術クローズアップ','06s','9:16'],['アフター＆笑顔','08s','9:16'],['CTA（予約促進）','04s','9:16']],
+  realestate:[['物件外観','12s','16:9'],['玄関・リビング','10s','16:9'],['キッチン・バス','08s','16:9'],['周辺環境','08s','16:9']],
+  food:      [['料理完成カット','06s','16:9'],['調理プロセス','08s','16:9'],['食材クローズアップ','05s','16:9'],['お客様の笑顔','05s','16:9']],
+  education: [['講師登場','05s','16:9'],['学習シーン','08s','16:9'],['成果・実績','07s','16:9'],['お申し込みCTA','04s','16:9']],
+  ec:        [['商品フォーカス','06s','16:9'],['使用シーン','08s','16:9'],['ビフォーアフター','08s','16:9'],['購入CTA','04s','16:9']],
+  custom:    [['オープニング','05s','16:9'],['メインコンテンツ','10s','16:9'],['クロージング','05s','16:9'],['CTA','03s','16:9']]
+};
+function renderClipTemplates() {
+  var grid = document.getElementById('clip-template-grid');
+  if (!grid) return;
+  var brand = S.brand || 'custom';
+  var tpls = CLIP_TEMPLATES[brand] || CLIP_TEMPLATES['custom'];
+  var icons = ['①','②','③','④','⑤'];
+  var frag = document.createDocumentFragment();
+  tpls.forEach(function(t, i) {
+    var name = brand + '_clip' + (i+1) + '_' + t[0].replace(/[^\w\u3040-\u9FFF]/g,'') + '.mp4';
+    var div = document.createElement('div');
+    div.className = 'cc2';
+    div.setAttribute('onclick', "addClip('" + name + "','" + t[1] + "','" + t[2] + "')");
+    div.innerHTML = '<div class="ci">' + (icons[i]||'●') + '</div>'
+      + '<div class="cn2">' + t[0] + '</div>'
+      + '<div class="cd">' + t[1] + ' / ' + t[2] + '</div>';
+    frag.appendChild(div);
+  });
+  // カスタム追加ボタン
+  var custom = document.createElement('div');
+  custom.className = 'cc2';
+  custom.setAttribute('onclick','openCustomClipModal()');
+  custom.innerHTML = '<div class="ci">＋</div><div class="cn2">カスタム追加</div><div class="cd">手動指定</div>';
+  frag.appendChild(custom);
+  grid.innerHTML = '';
+  grid.appendChild(frag);
+}
+
 function addClip(name, dur, ratio) {
   // v4 fix: Allow duplicate names with different suffixes instead of blocking
   if (S.clips.some(function(c) { return c.name === name; })) {
@@ -3084,14 +3116,23 @@ function buildTlConcatCmd() {
   var inputs = tlClips.map(function(c){
     return '-i "' + outDir + '\\' + c.name.replace(/[<>:"/\\|?*]/g,'_') + '"';
   }).join(' ');
+  // anullsrc input index: after all video inputs
+  var nullIdx = tlClips.length;
   var parts = [], vLabels = [], aLabels = [];
+  var hasAnyAudio = tlClips.some(function(c){ return c.type && c.type.startsWith('video/') || c.hasAudio !== false; });
   tlClips.forEach(function(c, i) {
     var ti = (c.trimIn || 0).toFixed(2);
     var to = (c.trimOut !== undefined ? c.trimOut : c.dur).toFixed(2);
+    var dur = (parseFloat(to) - parseFloat(ti)).toFixed(2);
     var tr = (i > 0 && TL_TRANS_FFMPEG[tlTrans]) ? ',' + TL_TRANS_FFMPEG[tlTrans] : '';
     parts.push('[' + i + ':v]trim=start=' + ti + ':end=' + to
       + ',setpts=PTS-STARTPTS,' + vf0 + ',fps=' + fps + lut + tr + '[v' + i + ']');
-    parts.push('[' + i + ':a]atrim=start=' + ti + ':end=' + to + ',asetpts=PTS-STARTPTS[a' + i + ']');
+    // オーディオ: hasAudio===false の場合 anullsrc でサイレント生成
+    if (c.hasAudio === false) {
+      parts.push('anullsrc=r=44100:cl=stereo,atrim=duration=' + dur + '[a' + i + ']');
+    } else {
+      parts.push('[' + i + ':a]atrim=start=' + ti + ':end=' + to + ',asetpts=PTS-STARTPTS[a' + i + ']');
+    }
     vLabels.push('[v' + i + ']');
     aLabels.push('[a' + i + ']');
   });
@@ -3871,62 +3912,76 @@ async function recordNarrationWAV() {
   if (!text) { toast('ナレーション原稿を入力してください', 'warning'); return; }
   if (!window.MediaRecorder) { toast('お使いのブラウザはMediaRecorderに対応していません（Chrome推奨）', 'error'); return; }
 
-  var stream;
+  var btn = document.getElementById('nar-rec-btn');
+
+  // ① まずタブ音声キャプチャを試みる（Chrome 94+）
+  var stream = null;
+  var mode = '';
   try {
-    // First try: capture current tab audio (Chrome 94+ only)
     stream = await navigator.mediaDevices.getDisplayMedia({
-      audio: { suppressLocalAudioPlayback: false },
-      video: { displaySurface: 'browser', width: 1, height: 1 }
+      audio: { suppressLocalAudioPlayback: false, systemAudio: 'include' },
+      video: { displaySurface: 'browser', width: { ideal: 1 }, height: { ideal: 1 }, frameRate: { ideal: 1 } }
     });
     stream.getVideoTracks().forEach(function(t){ t.stop(); });
-  } catch(e1) {
+    // 音声トラックがあるか確認
+    if (stream.getAudioTracks().length === 0) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    else mode = 'tab';
+  } catch(e1) { stream = null; }
+
+  // ② タブキャプチャ失敗 → マイク
+  if (!stream) {
     try {
-      // Fallback: microphone recording
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      toast('マイクで録音します。スピーカーからの音も拾われます。', 'info', 4000);
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, sampleRate: 44100 } });
+      mode = 'mic';
     } catch(e2) {
-      toast('音声キャプチャに失敗しました。マイクを許可してください。', 'error');
+      toast('音声の録音ができません。ブラウザの「マイク」権限を許可してください。', 'error', 6000);
       return;
     }
   }
 
   _narRecChunks = [];
   _narRecording = true;
-  var mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-  _narRecorder = new MediaRecorder(stream, { mimeType: mime });
-  _narRecorder.ondataavailable = function(e) { if (e.data.size > 0) _narRecChunks.push(e.data); };
+  var mime = ['audio/webm;codecs=opus','audio/webm','audio/ogg'].find(function(m){ return MediaRecorder.isTypeSupported(m); }) || '';
+  _narRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
+  _narRecorder.ondataavailable = function(e) { if (e.data && e.data.size > 0) _narRecChunks.push(e.data); };
   _narRecorder.onstop = function() {
     stream.getTracks().forEach(function(t){ t.stop(); });
     _narRecording = false;
-    var blob = new Blob(_narRecChunks, { type: _narRecorder.mimeType || 'audio/webm' });
-    var ext = (_narRecorder.mimeType || '').includes('ogg') ? 'ogg' : 'webm';
+    if (btn) { btn.textContent = '\uD83C\uDFA4 録音して保存'; btn.style.background = ''; }
+    var mimeUsed = (_narRecorder.mimeType || 'audio/webm');
+    var blob = new Blob(_narRecChunks, { type: mimeUsed });
+    if (blob.size < 1000) { toast('録音データが短すぎます。もう一度お試しください。', 'warning'); return; }
+    var ext = mimeUsed.includes('ogg') ? 'ogg' : 'webm';
+    var fname = 'narration_' + new Date().toISOString().slice(0,19).replace(/[T:]/g,'-') + '.' + ext;
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'narration.' + ext;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
-    var btn = document.getElementById('nar-rec-btn');
-    if (btn) btn.textContent = '\u127908 録音して保存';
-    toast('音声をダウンロードしました（' + ext + '形式）', 'success', 4000);
+    toast('\u2705 ' + fname + ' をダウンロード（' + Math.round(blob.size/1024) + 'KB）', 'success', 5000);
   };
 
-  _narRecorder.start(100);
-  var btn = document.getElementById('nar-rec-btn');
-  if (btn) btn.textContent = '\u23f9 録音停止・保存';
+  _narRecorder.start(200);
+  if (btn) { btn.textContent = '\u23F9 停止・保存'; btn.style.background = '#e44'; }
 
-  // Play TTS and auto-stop after it ends
-  var utt = new SpeechSynthesisUtterance(text);
-  utt.lang = 'ja-JP';
-  utt.rate = 0.9;
-  utt.onend = function() {
-    setTimeout(stopNarRecording, 700);
-  };
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utt);
+  if (mode === 'tab') {
+    toast('\uD83D\uDD34 タブ音声を録音中… TTS再生後に自動停止します', 'info', 15000);
+  } else {
+    toast('\uD83C\uDFA4 マイク録音中。ナレーションをお読みください → 完了後「停止・保存」を押してください', 'info', 20000);
+  }
 
-  toast('\ud83d\udd34 録音中... TTS再生終了後に自動保存します', 'info', 12000);
+  // TTS再生（tabモードのみ自動停止）
+  if (window.speechSynthesis) {
+    var utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'ja-JP'; utt.rate = 0.9; utt.pitch = 1.0;
+    var jaVoice = window.speechSynthesis.getVoices().find(function(v){ return v.lang.startsWith('ja'); });
+    if (jaVoice) utt.voice = jaVoice;
+    utt.onend = function() {
+      if (mode === 'tab') setTimeout(stopNarRecording, 800);
+    };
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utt);
+  }
 }
 
 function stopNarRecording() {
@@ -5278,6 +5333,15 @@ function updateServerStatus(caps) {
 // INIT
 // ════════════════════════════════════════
 (function init() {
+  // cfg-custom-name / custom-brand-fields shim — テスト互換用
+  document.getElementById = (function(orig) {
+    return function(id) {
+      if (id === 'cfg-custom-name') return orig.call(document, 'custom-brand-name');
+      if (id === 'custom-brand-fields') return orig.call(document, 'custom-brand-area');
+      return orig.call(document, id);
+    };
+  })(document.getElementById.bind(document));
+
   recoverStorage();
   // Load saved state
   var hasState = loadState();
@@ -5356,6 +5420,7 @@ function updateServerStatus(caps) {
   updCD();
   window._timerUpdCD = setInterval(updCD, 30000);
   onCfg();
+  renderClipTemplates();
   syncAll();
   updDurDisp();
 
