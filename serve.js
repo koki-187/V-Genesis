@@ -1,17 +1,29 @@
 const http = require('http');
 const fs   = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
+const { exec, spawn: spawnProcess, execSync } = require('child_process');
+
+// ── .env パーサー（npm依存なし）──────────────────────────────────
+function loadEnv() {
+  try {
+    var envPath = path.join(__dirname, '.env');
+    if (!fs.existsSync(envPath)) return;
+    fs.readFileSync(envPath, 'utf8').split('\n').forEach(function(line) {
+      var m = line.match(/^([^#=]+)=(.*)$/);
+      if (m) process.env[m[1].trim()] = m[2].trim().replace(/^['"]|['"]$/g, '');
+    });
+    console.log('[ENV] Loaded from:', envPath);
+  } catch(e) {}
+}
+loadEnv();
 
 // ── .env 読み込み（複数パスを順番に探す）──────────────────────────
 const ENV_PATHS = [
   path.join(__dirname, '.env'),
-  'H:/マイドライブ/★★★プライベート用★★★/V-Genesis/.env/V-Genesis.env',
-  'H:/マイドライブ/★★★プライベート用★★★/V-Genesis/.env',
   path.join(process.env.USERPROFILE || '', '.env'),
 ];
 
-function loadEnv() {
+function loadEnvLegacy() {
   for (const p of ENV_PATHS) {
     try {
       const raw = fs.readFileSync(p, 'utf8');
@@ -21,7 +33,7 @@ function loadEnv() {
         if (m) env[m[1]] = m[2];
       });
       if (env.ANTHROPIC_API_KEY) {
-        console.log(`[ENV] Loaded from: ${p}`);
+        console.log(`[ENV] Legacy loaded from: ${p}`);
         return env;
       }
     } catch (_) {}
@@ -30,10 +42,28 @@ function loadEnv() {
   return {};
 }
 
-const ENV = loadEnv();
+const ENV = loadEnvLegacy();
 
-// ── VOICEVOX ショートカットパス ─────────────────────────────────────
-const VOICEVOX_LNK = 'H:\\マイドライブ\\★★★プライベート用★★★\\V-Genesis\\VOICEVOX.lnk';
+// ── コマンドインジェクション対策 ────────────────────────────────
+function sanitizeCmd(cmd) {
+  // シェルメタ文字チェック
+  var dangerous = /[;&|><`$\n\r]|\$\(|\|\|/;
+  if (dangerous.test(cmd)) return null;
+  // ffmpegのみ許可
+  if (!cmd.trim().startsWith('ffmpeg')) return null;
+  return cmd.trim();
+}
+
+// ── CORS 許可オリジン ──────────────────────────────────────────
+var allowedOrigins = ['http://localhost:8765', 'http://127.0.0.1:8765', 'https://koki-187.github.io'];
+
+// ── 環境変数ベースのパス設定 ──────────────────────────────────────
+const IOPAINT_EXE_PATH  = process.env.IOPAINT_PATH || '';
+const VOICEVOX_EXE_PATH = process.env.VOICEVOX_PATH || '';
+const CLAUDE_API_KEY    = process.env.CLAUDE_API_KEY || '';
+
+// ── VOICEVOX ショートカットパス（後方互換）────────────────────────
+const VOICEVOX_LNK = VOICEVOX_EXE_PATH || path.join(__dirname, 'VOICEVOX.lnk');
 
 // ── HTML に設定を注入する ────────────────────────────────────────
 function injectConfig(html) {
@@ -76,19 +106,65 @@ const MIME = {
 const PORT = process.env.PORT || 8765;
 
 const server = http.createServer((req, res) => {
-  // CORS headers for API endpoints
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS headers for API endpoints（制限付き）
+  var origin = req.headers.origin || '';
+  var corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
+  const url = req.url.split('?')[0];
+  const method = req.method;
+
+  if (method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
     return;
   }
 
-  // ── API: ヘルスチェック ──
-  if (req.url === '/health') {
+  // ── ヘルパー: JSON レスポンス ──
+  function sendJSON(r, statusCode, data) {
+    r.writeHead(statusCode, { 'Content-Type': 'application/json' });
+    r.end(JSON.stringify(data));
+  }
+
+  // ── API: capabilities エンドポイント ──
+  if (url === '/api/capabilities' && method === 'GET') {
+    var caps = {
+      server: true,
+      ffmpeg: false,
+      voicevox: false,
+      iopaint: false,
+      claudeApi: !!(process.env.CLAUDE_API_KEY || CLAUDE_API_KEY || ENV.ANTHROPIC_API_KEY || ''),
+      version: '5.0'
+    };
+    // ffmpegの存在確認
+    try {
+      execSync('ffmpeg -version', {timeout: 3000, stdio: 'ignore'});
+      caps.ffmpeg = true;
+    } catch(e) {}
+    // VOICEVOXの確認
+    caps.voicevox = !!(VOICEVOX_EXE_PATH);
+    caps.iopaint = !!(IOPAINT_EXE_PATH);
+
+    sendJSON(res, 200, caps);
+    return;
+  }
+
+  // ── API: ヘルスチェック（capabilities情報追加）──
+  if (url === '/health') {
+    var healthCaps = {
+      ffmpeg: false,
+      voicevox: !!(VOICEVOX_EXE_PATH),
+      iopaint: !!(IOPAINT_EXE_PATH),
+      claudeApi: !!(process.env.CLAUDE_API_KEY || CLAUDE_API_KEY || ENV.ANTHROPIC_API_KEY || '')
+    };
+    try {
+      execSync('ffmpeg -version', {timeout: 3000, stdio: 'ignore'});
+      healthCaps.ffmpeg = true;
+    } catch(e) {}
+
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'ok',
@@ -97,6 +173,7 @@ const server = http.createServer((req, res) => {
       proxy: ENV.ANTHROPIC_PROXY_URL || 'http://localhost:3001/v1/messages',
       videoDir: ENV.VP4_OUTPUT_DIR || 'C:\\VideoProduction',
       time: new Date().toISOString(),
+      capabilities: healthCaps,
       localIp: (function() {
         const nets = require('os').networkInterfaces();
         for (const n of Object.values(nets)) for (const a of n) if (a.family==='IPv4'&&!a.internal) return a.address;
@@ -107,7 +184,7 @@ const server = http.createServer((req, res) => {
   }
 
   // ── API: VOICEVOX 起動 ──
-  if (req.url === '/api/launch-voicevox' && req.method === 'POST') {
+  if (url === '/api/launch-voicevox' && method === 'POST') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     // .lnk ファイル存在チェック
     if (!fs.existsSync(VOICEVOX_LNK)) {
@@ -127,33 +204,43 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // ── API: FFmpeg ワンクリック実行 ──
-  if (req.url === '/api/exec' && req.method === 'POST') {
+  // ── API: FFmpeg ワンクリック実行（spawn, shell:false）──
+  if (url === '/api/exec' && method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
       let parsed;
       try { parsed = JSON.parse(body); } catch(e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
+        sendJSON(res, 400, { ok: false, error: 'Invalid JSON' });
         return;
       }
-      const cmd = (parsed.cmd || '').trim();
-      // セキュリティ: ffmpegコマンドのみ許可
-      if (!cmd.startsWith('ffmpeg')) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'Only ffmpeg commands are allowed' }));
+      const rawCmd = (parsed.cmd || '').trim();
+      // セキュリティ: sanitizeCmdでバリデーション
+      const safeCmd = sanitizeCmd(rawCmd);
+      if (!safeCmd) {
+        sendJSON(res, 400, { ok: false, error: 'Only ffmpeg commands without shell metacharacters are allowed' });
         return;
       }
-      console.log('[FFmpeg] Executing:', cmd.substring(0, 80) + '...');
-      exec(cmd, { shell: 'cmd.exe', timeout: 300000 }, (err, stdout, stderr) => {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        if (err) {
-          console.error('[FFmpeg] Error:', err.message);
-          res.end(JSON.stringify({ ok: false, error: err.message, stderr: stderr || '' }));
+      // コマンドを引数に分割してspawnで実行（shell:false）
+      const args = safeCmd.split(/\s+/);
+      const bin = args.shift(); // 'ffmpeg'
+      console.log('[FFmpeg] Executing (spawn):', safeCmd.substring(0, 80) + '...');
+      const proc = spawnProcess(bin, args, { shell: false, timeout: 300000 });
+      let stdout = '';
+      let stderr = '';
+      proc.stdout.on('data', d => stdout += d.toString());
+      proc.stderr.on('data', d => stderr += d.toString());
+      proc.on('error', err => {
+        console.error('[FFmpeg] Spawn error:', err.message);
+        sendJSON(res, 200, { ok: false, error: err.message, stderr: stderr || '' });
+      });
+      proc.on('close', code => {
+        if (code !== 0) {
+          console.error('[FFmpeg] Exit code:', code);
+          sendJSON(res, 200, { ok: false, error: 'ffmpeg exited with code ' + code, stderr: stderr || '' });
         } else {
           console.log('[FFmpeg] Done:', stdout.substring(0, 100));
-          res.end(JSON.stringify({ ok: true, stdout: stdout || 'OK', stderr: stderr || '' }));
+          sendJSON(res, 200, { ok: true, stdout: stdout || 'OK', stderr: stderr || '' });
         }
       });
     });
@@ -161,8 +248,8 @@ const server = http.createServer((req, res) => {
   }
 
   // ── IOPaint 統合 ───────────────────────────────────────────────────
-  const IOPAINT_EXE  = 'C:\\Users\\reale\\Downloads\\IOPaint-v1.1\\installer\\Scripts\\iopaint.exe';
-  const IOPAINT_PYEXE = 'C:\\Users\\reale\\Downloads\\IOPaint-v1.1\\installer\\python.exe';
+  const IOPAINT_EXE  = IOPAINT_EXE_PATH || '';
+  const IOPAINT_PYEXE = IOPAINT_EXE_PATH ? path.join(path.dirname(path.dirname(IOPAINT_EXE_PATH)), 'python.exe') : '';
   const IOPAINT_PORT_IOP = 8081;
 
   function execPromise(cmd, opts) {
@@ -175,7 +262,7 @@ const server = http.createServer((req, res) => {
   }
 
   // IOPaint ステータス確認 GET /api/iopaint/status
-  if (req.url === '/api/iopaint/status' && req.method === 'GET') {
+  if (url === '/api/iopaint/status' && method === 'GET') {
     const http2 = require('http');
     const chk = http2.get('http://localhost:' + IOPAINT_PORT_IOP + '/api/v1/server-config', (r) => {
       let d = '';
@@ -199,7 +286,7 @@ const server = http.createServer((req, res) => {
   }
 
   // IOPaint 自動起動 POST /api/iopaint/start
-  if (req.url === '/api/iopaint/start' && req.method === 'POST') {
+  if (url === '/api/iopaint/start' && method === 'POST') {
     let body = '';
     req.on('data', c => body += c);
     req.on('end', () => {
@@ -236,7 +323,7 @@ const server = http.createServer((req, res) => {
   }
 
   // IOPaint 単一フレームプロキシ POST /api/iopaint/inpaint (CORS回避)
-  if (req.url === '/api/iopaint/inpaint' && req.method === 'POST') {
+  if (url === '/api/iopaint/inpaint' && method === 'POST') {
     let body = '';
     req.on('data', c => body += c);
     req.on('end', () => {
@@ -254,7 +341,7 @@ const server = http.createServer((req, res) => {
         iopRes.on('end', () => {
           res.writeHead(iopRes.statusCode, {
             'Content-Type': iopRes.headers['content-type'] || 'image/jpeg',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': corsOrigin
           });
           res.end(Buffer.concat(chunks));
         });
@@ -270,7 +357,7 @@ const server = http.createServer((req, res) => {
   }
 
   // IOPaint 動画一括処理 POST /api/iopaint/process-video (SSE)
-  if (req.url === '/api/iopaint/process-video' && req.method === 'POST') {
+  if (url === '/api/iopaint/process-video' && method === 'POST') {
     let body = '';
     req.on('data', c => body += c);
     req.on('end', () => {
@@ -299,7 +386,7 @@ const server = http.createServer((req, res) => {
         'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': corsOrigin
       });
 
       const sse = (data) => {
@@ -443,7 +530,7 @@ print("FINISHED", flush=True)
   }
 
   // ── API: 画像生成プロキシ (Pollinations.ai / Turnstileバイパス) ──
-  if (req.url.startsWith('/api/generate-image') && req.method === 'GET') {
+  if (req.url.startsWith('/api/generate-image') && method === 'GET') {
     const urlObj = new URL('http://localhost' + req.url);
     const prompt = urlObj.searchParams.get('prompt') || 'photorealistic portrait';
     const width  = urlObj.searchParams.get('width')  || '576';
@@ -467,7 +554,7 @@ print("FINISHED", flush=True)
       res.writeHead(200, {
         'Content-Type': imgRes.headers['content-type'] || 'image/jpeg',
         'Cache-Control': 'public, max-age=3600',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': corsOrigin
       });
       imgRes.pipe(res);
     });
@@ -485,7 +572,7 @@ print("FINISHED", flush=True)
   }
 
   // ── API: Claude APIプロキシ (CORSバイパス) ──
-  if (req.url === '/api/claude' && req.method === 'POST') {
+  if (url === '/api/claude' && method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
@@ -528,8 +615,7 @@ print("FINISHED", flush=True)
   }
 
   // ── 静的ファイル配信 (PWA対応) ──
-  let urlPath = req.url.split('?')[0];
-  if (urlPath === '/' || urlPath === '/index.html') {
+  if (url === '/' || url === '/index.html') {
     // メインHTML — ENV注入付き
     const file = path.join(__dirname, 'index.html');
     fs.readFile(file, 'utf8', (err, data) => {
@@ -546,7 +632,7 @@ print("FINISHED", flush=True)
   }
 
   // manifest.json, sw.js, icons etc.
-  const safePath = path.normalize(urlPath).replace(/^(\.\.[\/\\])+/, '');
+  const safePath = path.normalize(url).replace(/^(\.\.[\/\\])+/, '');
   const filePath = path.join(__dirname, safePath);
   const ext = path.extname(filePath).toLowerCase();
   const contentType = MIME[ext] || 'application/octet-stream';
@@ -568,14 +654,16 @@ server.listen(PORT, () => {
   console.log('║  VIDEO PIPELINE v5  —  V-Genesis     ║');
   console.log(`║  http://localhost:${PORT}               ║`);
   console.log(`║  Health: http://localhost:${PORT}/health ║`);
+  console.log(`║  Caps:   http://localhost:${PORT}/api/capabilities ║`);
   console.log('╠══════════════════════════════════════╣');
   console.log('║  VOICEVOX: /api/launch-voicevox      ║');
   console.log('║  PWA:     manifest.json + sw.js      ║');
   console.log('╚══════════════════════════════════════╝');
   console.log('');
-  console.log(`API Key : ${ENV.ANTHROPIC_API_KEY ? '✅ SET' : '❌ NOT SET'}`);
-  console.log(`Proxy   : ${ENV.ANTHROPIC_PROXY_URL || 'http://localhost:3001/v1/messages (default)'}`);
-  console.log(`Output  : ${ENV.VP4_OUTPUT_DIR || 'C:\\VideoProduction (default)'}`);
-  console.log(`VOICEVOX: ${fs.existsSync(VOICEVOX_LNK) ? '✅ LNK found' : '❌ LNK not found'}`);
+  console.log(`API Key  : ${(ENV.ANTHROPIC_API_KEY || CLAUDE_API_KEY) ? 'SET' : 'NOT SET'}`);
+  console.log(`Proxy    : ${ENV.ANTHROPIC_PROXY_URL || 'http://localhost:3001/v1/messages (default)'}`);
+  console.log(`Output   : ${ENV.VP4_OUTPUT_DIR || 'C:\\VideoProduction (default)'}`);
+  console.log(`VOICEVOX : ${VOICEVOX_EXE_PATH ? 'SET (' + VOICEVOX_EXE_PATH + ')' : (fs.existsSync(VOICEVOX_LNK) ? 'LNK found' : 'NOT SET')}`);
+  console.log(`IOPaint  : ${IOPAINT_EXE_PATH ? 'SET (' + IOPAINT_EXE_PATH + ')' : 'NOT SET'}`);
   console.log('');
 });

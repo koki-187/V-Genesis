@@ -792,6 +792,10 @@ body.beginner-mode .now-action{display:flex;}
           <select id="cfg-brand" onchange="onCfg()">
             <option value="scalp">スカルプインク（SMP）</option>
             <option value="agent">My Agent PRO（不動産）</option>
+            <option value="beauty">💄 美容サロン</option>
+            <option value="food">🍽 飲食店・カフェ</option>
+            <option value="education">📚 教育・スクール</option>
+            <option value="ec">🛒 ECショップ</option>
             <option value="custom">✏️ カスタム（自分で入力）</option>
           </select>
           <div id="custom-brand-area" style="display:none;margin-top:8px;padding:10px;background:rgba(255,255,255,.04);border-radius:4px;border:1px solid var(--bdr);">
@@ -1020,7 +1024,7 @@ body.beginner-mode .now-action{display:flex;}
   </div>
   <div class="sb">
     <div class="now-action"><span class="now-action-icon">④</span><div class="now-action-text"><strong>ナレーション原稿を確認して音声を生成しましょう</strong>Step 2で生成された原稿が左のテキストエリアに表示されています。「試し聴き」ボタンで音声をプレビューできます。VOICEVOXをお使いの方は「VOICEVOXで生成」を押してください。</div></div>
-    <div class="beginner-hint">ここでは動画の音声を設定します。左でナレーション（話す内容）、右でBGM（背景の音楽）を設定します。VOICEVOXは無料の音声読み上げソフトです。</div>
+    <div class="beginner-hint">VOICEVOXをお使いでない場合は「試し聴き」ボタン（ブラウザ音声）でナレーションを確認できます。実際の音声ファイルが必要な場合は、①VOICEVOX（無料）をインストール ②または有料TTSサービス（COEIROINK、Niji Voice等）をご利用ください。ナレーションテキストはコピーしてご利用いただけます。</div>
     <div class="r2">
       <div class="card" style="margin-bottom:0;">
         <div class="cl">ナレーション（VOICEVOX）</div>
@@ -1041,6 +1045,7 @@ body.beginner-mode .now-action{display:flex;}
           <button class="btn btn-ai" onclick="previewNarSpeech()" title="ブラウザ内蔵音声でプレビュー（インストール不要）">&#9654; 試し聴き</button>
           <button class="btn btn-p" onclick="openVV()">VOICEVOXで生成</button>
           <button class="btn btn-g" onclick="launchVoicevox()">VOICEVOX起動</button>
+          <button class="btn btn-g" onclick="cpf('s4-nar')" title="ナレーション原稿をクリップボードにコピー">テキストをコピー</button>
           <button class="btn btn-g" onclick="saveNarToDrive()">Driveに音声保存</button>
         </div>
       </div>
@@ -1839,6 +1844,7 @@ Write-Host "Setup complete: ffmpeg, node, claude, python"</div>
     <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton"></div>GPT Image</div><span class="tv">50枚/3h</span></div>
     <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td ton" id="vv-dot"></div>VOICEVOX</div><span class="tv" id="rp-vv">ローカル</span></div>
     <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td" id="api-dot"></div>Claude API</div><span class="tv" id="rp-api">未設定</span></div>
+    <div class="trow"><div style="display:flex;align-items:center;gap:5px;"><div class="td" id="server-status-dot"></div>サーバー</div><span class="tv" id="server-status-lbl">確認中</span></div>
   </div>
   <div>
     <div class="rpl">今日の進捗</div>
@@ -1851,6 +1857,12 @@ Write-Host "Setup complete: ffmpeg, node, claude, python"</div>
     <div class="rpl">Sora 残り時間</div>
     <div style="font-family:var(--mon);font-size:22px;font-weight:600;color:var(--yel);text-align:center;padding:8px 0;" id="rp-cd">---</div>
     <div style="font-family:var(--mon);font-size:9px;color:var(--c3);text-align:center;">4/26 23:59 JST</div>
+    <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+      <label style="font-size:10px;color:var(--fg2);">Sora期限日:</label>
+      <input type="date" id="sora-deadline-input"
+        style="background:var(--s2);border:1px solid var(--bdr);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--fg);outline:none;"
+        onchange="saveSoraDeadline(this.value)">
+    </div>
   </div>
   <!-- v4: Error Log Panel -->
   <div>
@@ -1893,6 +1905,10 @@ var S = {
 var brands = {
   scalp:{ name:'スカルプインク（SMP）', tgt:'薄毛・薄毛進行に悩む30〜50代男性' },
   agent:{ name:'My Agent PRO（不動産）', tgt:'投資不動産・資産管理・相続を検討する40〜60代' },
+  beauty: { name: '美容サロン', tgt: '20〜40代女性・美容意識が高い方', tone: '親しみやすく・信頼感', col: '#ff6b9d', keywords: ['美容','サロン','ケア','美肌','リラックス'] },
+  food: { name: '飲食店・カフェ', tgt: '近隣在住・食にこだわる方', tone: 'あたたかく・食欲をそそる', col: '#ff8c42', keywords: ['料理','グルメ','カフェ','ランチ','こだわり'] },
+  education: { name: '教育・スクール', tgt: '学習意欲のある方・保護者', tone: '誠実・わかりやすく', col: '#4ecdc4', keywords: ['学習','スキル','成長','資格','プロ'] },
+  ec: { name: 'ECショップ', tgt: 'オンライン購入を検討中の方', tone: '信頼感・お得感', col: '#ffd93d', keywords: ['商品','品質','送料無料','限定','セール'] },
   custom:{ name:'カスタムブランド', tgt:'一般ユーザー', tone:'フレンドリー・親しみやすい', col:'#00c8ff', keywords:[] }
 };
 var _applyCustomBrandTimer = null;
@@ -2150,22 +2166,48 @@ function loadState() {
 // ════════════════════════════════════════
 // COUNTDOWN
 // ════════════════════════════════════════
+function saveSoraDeadline(val) {
+  if (!val) return;
+  try { localStorage.setItem('vp4_sora_deadline', val + 'T23:59:59+09:00'); } catch(e) {}
+  updCD();
+  toast('Sora期限日を更新しました: ' + val, 'success', 3000);
+}
 function updCD() {
-  var dl = new Date('2026-04-26T23:59:59+09:00');
+  var savedDL = '';
+  try { savedDL = localStorage.getItem('vp4_sora_deadline') || ''; } catch(e) {}
+  var dl = new Date(savedDL || '2026-04-26T23:59:59+09:00');
   var now = new Date();
   var diff = dl - now;
-  var d = Math.max(0, Math.floor(diff / 86400000));
-  var h = Math.max(0, Math.floor((diff % 86400000) / 3600000));
-  var m = Math.max(0, Math.floor((diff % 3600000) / 60000));
-  var txt = diff <= 0 ? '終了済み' : d + '日 ' + h + '時間 ' + m + '分';
+  // 期限切れ処理
+  if (diff <= 0) {
+    var els = ['s3-days','rp-sora'];
+    els.forEach(function(id){ var e=document.getElementById(id); if(e) e.textContent='期限切れ'; });
+    var el = document.getElementById('cd-top');
+    if (el) el.textContent = 'Sora 残り：期限切れ';
+    var rp = document.getElementById('rp-cd');
+    if (rp) rp.textContent = '期限切れ';
+    var warn = document.querySelector('.alert.a-warn');
+    if (warn) warn.style.display = 'none';
+    return;
+  }
+  var d = Math.floor(diff / 86400000);
+  var h = Math.floor((diff % 86400000) / 3600000);
+  var m = Math.floor((diff % 3600000) / 60000);
+  var txt = d + '日 ' + h + '時間 ' + m + '分';
   var el = document.getElementById('cd-top');
   if (el) el.textContent = 'Sora 残り：' + txt;
   var rp = document.getElementById('rp-cd');
-  if (rp) rp.textContent = diff <= 0 ? '終了済み' : '残 ' + d + '日 ' + h + 'h';
+  if (rp) rp.textContent = '残 ' + d + '日 ' + h + 'h';
   var sd = document.getElementById('s3-days');
   if (sd) sd.textContent = d;
   var rpS = document.getElementById('rp-sora');
   if (rpS) rpS.textContent = '残' + d + '日';
+  // Sora期限入力欄の値を同期
+  var dlInput = document.getElementById('sora-deadline-input');
+  if (dlInput && !dlInput.value) {
+    var y = dl.getFullYear(), mo = dl.getMonth()+1, da = dl.getDate();
+    dlInput.value = y + '-' + (mo<10?'0':'') + mo + '-' + (da<10?'0':'') + da;
+  }
 }
 
 // ════════════════════════════════════════
@@ -2395,24 +2437,15 @@ function genAll() {
   ].join('\n');
   var user = '用途：' + S.purpose + ' / シーン：' + (sceneMap[S.scene] || S.scene) + ' / 追加KW：' + (S.kw || 'なし') + ' / 動画尺：' + S.dur + '秒';
 
-  // serve.jsプロキシ経由でCORSバイパス（フォールバック：直接API）
-  var url = '/api/claude';
-  var headers = { 'Content-Type': 'application/json' };
-  var payload = JSON.stringify({
+  // claudeApiCall()経由でリトライ対応（serve.jsプロキシ使用）
+  var payload = {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 1500,
     system: sys,
     messages: [{ role: 'user', content: user }]
-  });
+  };
 
-  fetch(url, { method: 'POST', headers: headers, body: payload }).then(function(r) {
-    if (!r.ok) {
-      return r.text().then(function(txt) {
-        throw new Error('HTTP ' + r.status + ': ' + txt.substring(0, 200));
-      });
-    }
-    return r.json();
-  }).then(function(data) {
+  claudeApiCall(payload, 3).then(function(data) {
     var text = (data.content && data.content.find(function(c) { return c.type === 'text'; }) || {}).text || '';
     if (!text) throw new Error('APIレスポンスにテキストが含まれていません');
     S.genP = exSec(text, '動画プロンプト');
@@ -2536,6 +2569,94 @@ var PRESETS = {
       ],
       desc: '不動産選びで失敗したくない方へ。My Agent PROは18年の実績とAIデータ分析を組み合わせ、お客様に最適な物件をご提案します。\n\n売買・投資・賃貸すべて対応。\n無料相談受付中。\n\n▼ お問い合わせ\nhttps://myagentpro.jp/contact',
       tags: '不動産,マンション,東京,物件探し,不動産投資,マイエージェント,AI不動産,資産価値,不動産売買,無料相談'
+    }
+  },
+  beauty: {
+    video: 'Soft cinematic close-up of skincare treatment in a luxurious spa setting. Warm golden lighting, gentle hands applying premium product. Dewdrops on skin texture, shallow depth of field. 4K photorealistic, 9:16 vertical.',
+    narration: 'あなたの肌悩み、まだ諦めていませんか？\n私たちのサロンでは、一人ひとりに合わせたオーダーメイドのケアをご提供しています。\nプロの技術とこだわりの製品で、あなたの理想の肌へ導きます。\n今なら初回体験90分6,800円。ご予約はプロフのリンクから。',
+    overlay: 'あなたの肌悩みを解決\nオーダーメイドケア\n初回体験 受付中',
+    meta: 'BGM：Soft Ambient / 65-75BPM\nシーン：CU肌（4s）→施術（8s）→笑顔（3s）→CTA（2s）',
+    hooks: [
+      '「その肌悩み、まだ諦めてる？」',
+      '「肌が変わると、毎日が変わる」',
+      '「プロの技術、一度体験しませんか」',
+      '「90分で実感できる変化」',
+      '「鏡を見るのが楽しみになる」'
+    ],
+    seo: {
+      titles: [
+        '【初回特典】美容サロン | オーダーメイドスキンケア',
+        '【肌悩み解決】プロが施すオーダーメイド美容ケア',
+        '【体験90分】あなた専用のスキンケアプランをご提案'
+      ],
+      desc: '一人ひとりに合わせたオーダーメイドのスキンケアを提供する美容サロン。プロの技術で理想の美肌へ導きます。\n\n初回体験90分6,800円。\nご予約受付中。\n\n▼ ご予約・お問い合わせ\nhttps://example.com/contact',
+      tags: '美容サロン,スキンケア,美肌,フェイシャル,エステ,肌悩み,オーダーメイド,初回体験,美容ケア,サロン'
+    }
+  },
+  food: {
+    video: 'Warm cinematic overhead shot of chef plating a beautiful dish. Steam rising, fresh ingredients, rustic wooden table. Soft natural lighting, bokeh background. 4K photorealistic, 9:16 vertical.',
+    narration: '食べた瞬間、思わず笑顔になる料理があります。\n地元の新鮮食材にこだわり、毎日手作りのメニューをご用意しています。\nランチもディナーも、心のこもった一皿をお届けします。\nご予約・テイクアウトのご注文は、プロフのリンクまたはお電話で。',
+    overlay: '地元食材×手作り\n毎日変わるメニュー\nご予約受付中',
+    meta: 'BGM：Warm Acoustic / 70-80BPM\nシーン：食材（3s）→調理（8s）→完成皿（4s）→CTA（2s）',
+    hooks: [
+      '「この一皿で、笑顔になれる」',
+      '「地元食材の本気、食べてみて」',
+      '「シェフの手作り、毎日変わる」',
+      '「食べログ★4.5の理由がこれ」',
+      '「今日のランチ、もう決まった？」'
+    ],
+    seo: {
+      titles: [
+        '【地元食材】こだわりの手作り料理 | ランチ・ディナー',
+        '【毎日変わる】シェフの手作りメニュー | 予約受付中',
+        '【地産地消】新鮮食材にこだわるレストラン'
+      ],
+      desc: '地元の新鮮食材にこだわった手作り料理をご提供。毎日変わるメニューをお楽しみください。\n\nランチ・ディナー営業中。\nテイクアウトも対応。\n\n▼ ご予約\nhttps://example.com/reserve',
+      tags: 'グルメ,ランチ,ディナー,手作り,地元食材,レストラン,テイクアウト,カフェ,地産地消,予約'
+    }
+  },
+  education: {
+    video: 'Bright cinematic shot of a modern classroom with engaged students and professional instructor. Clean whiteboard, warm lighting, motivated expressions. 4K photorealistic, 16:9.',
+    narration: '3ヶ月で、スキルアップできたらどうしますか？\n私たちのスクールでは、現場のプロが直接指導。\n実践的なカリキュラムで、確実にスキルを習得できます。\n受講生の92%が目標を達成しています。\n無料体験授業、随時受付中。まずはプロフのリンクからお問い合わせください。',
+    overlay: 'プロが直接指導\n92%が目標達成\n無料体験 受付中',
+    meta: 'BGM：Uplifting Corporate / 80-90BPM\nシーン：教室（4s）→授業（8s）→実績（3s）→CTA（2s）',
+    hooks: [
+      '「3ヶ月で、人生変わる」',
+      '「プロが教える本物のスキル」',
+      '「92%が目標達成の理由」',
+      '「無料体験、まだ受けてない？」',
+      '「転職成功者、続出中」'
+    ],
+    seo: {
+      titles: [
+        '【実績92%達成】プロが教えるスキルアップスクール',
+        '【無料体験】3ヶ月で即戦力 | 実践型スクール',
+        '【プロ直伝】確実にスキルが身につくカリキュラム'
+      ],
+      desc: 'プロが直接指導する実践型スクール。3ヶ月で確実なスキルアップを実現。受講生の92%が目標を達成。\n\n無料体験授業受付中。\n\n▼ お問い合わせ\nhttps://example.com/trial',
+      tags: 'スクール,スキルアップ,資格,学習,プロ直伝,実践型,無料体験,キャリア,転職,教育'
+    }
+  },
+  ec: {
+    video: 'Clean product photography style cinematic shot. Premium packaging unboxing on marble surface. Soft studio lighting, crisp details, luxury feel. 4K photorealistic, 9:16 vertical.',
+    narration: 'これ、本当に必要だったんだと気づく商品があります。\n厳選した素材と職人の技術で作られた商品をお届けします。\n品質に自信があるから、全商品30日間返品保証付き。\n送料無料でお届けします。\n今だけ限定セール実施中。プロフのリンクから詳細をチェック。',
+    overlay: '品質保証の安心\n送料無料・返品OK\n限定セール中',
+    meta: 'BGM：Modern Pop / 85-95BPM\nシーン：商品CU（4s）→開封（6s）→使用（4s）→CTA（2s）',
+    hooks: [
+      '「これ、もっと早く知りたかった」',
+      '「送料無料＋30日返品保証」',
+      '「品質に妥協しない人へ」',
+      '「限定セール、残りわずか」',
+      '「職人が作る、本物の品質」'
+    ],
+    seo: {
+      titles: [
+        '【送料無料・30日返品保証】こだわり品質のECショップ',
+        '【限定セール】厳選素材×職人技の高品質商品',
+        '【品質保証】安心のオンラインショッピング'
+      ],
+      desc: '厳選素材×職人技の高品質商品。送料無料・30日返品保証付き。限定セール実施中。\n\n▼ 商品一覧\nhttps://example.com/shop',
+      tags: '通販,EC,送料無料,限定セール,品質保証,オンラインショップ,返品保証,厳選,職人,こだわり'
     }
   }
 };
@@ -3116,8 +3237,30 @@ function exportFor(pl) {
   updStats();
   gs('s5');
   document.getElementById('cmd-ti').textContent = 'FFmpeg --- ' + pl + ' 最適化';
-  // v4 fix #11: Replace alert with toast
-  toast('Step 5「編集・出力設定」のFFmpegコマンドをPowerShellで実行してください。出力先: C:\\VideoProduction\\exports\\' + pl + '\\', 'success', 5000);
+  var cmd = document.getElementById('cmd-bd') ? (document.getElementById('cmd-bd').textContent || '').trim() : '';
+  if (!cmd) { toast('FFmpegコマンドを先に生成してください（STEP5）', 'warn', 4000); return; }
+
+  // serve.jsの稼働確認→自動実行 or コマンドコピー
+  fetch('http://localhost:8765/api/capabilities', {signal: AbortSignal.timeout(2000)})
+    .then(function(r){ return r.json(); })
+    .then(function(caps) {
+      if (caps.ffmpeg) {
+        execFfmpegCmd();
+        toast(pl + ' 書き出し実行中…', 'info', 4000);
+      } else {
+        cpEl('cmd-bd');
+        toast('FFmpegが見つかりません。コマンドをコピーしました。PowerShellで実行してください。', 'warn', 8000, [
+          { label: 'セットアップ確認', fn: function(){ gs('stage-setup'); } }
+        ]);
+      }
+    })
+    .catch(function() {
+      cpEl('cmd-bd');
+      toast('サーバー未起動 — コマンドをコピーしました', 'warn', 8000, [
+        { label: 'node serve.js をコピー', fn: function(){ navigator.clipboard && navigator.clipboard.writeText('node serve.js').then(function(){ toast('コピー完了', 'success', 2000); }); } }
+      ]);
+    });
+
   markDone('s6');
   saveState();
 }
@@ -4830,6 +4973,42 @@ function recoverStorage() {
 }
 
 // ════════════════════════════════════════
+// SERVER CAPABILITY DETECTION
+// ════════════════════════════════════════
+function detectServerCapabilities() {
+  fetch('http://localhost:8765/api/capabilities', {signal: AbortSignal.timeout(3000)})
+    .then(function(r){ return r.json(); })
+    .then(function(caps) {
+      window._serverCaps = caps;
+      var execBtn = document.querySelector('[onclick="execFfmpegCmd()"]');
+      if (execBtn) {
+        execBtn.title = caps.ffmpeg ? 'FFmpeg利用可能' : 'FFmpeg未インストール — コマンドをコピーしてPowerShellで実行';
+        execBtn.style.opacity = caps.ffmpeg ? '1' : '0.6';
+      }
+      var vvBtn = document.querySelector('[onclick*="voicevox"]') || document.querySelector('[onclick*="VOICEVOX"]');
+      if (vvBtn && !caps.voicevox) {
+        vvBtn.title = 'VOICEVOXが設定されていません';
+      }
+      if (!caps.iopaint) {
+        var iopBtn = document.querySelector('[onclick*="iopaint"]');
+        if (iopBtn) iopBtn.title = 'IOPaintが設定されていません（.envでIOPAINT_PATHを設定）';
+      }
+      updateServerStatus(caps);
+    })
+    .catch(function() {
+      window._serverCaps = { server: false, ffmpeg: false, voicevox: false, iopaint: false, claudeApi: false };
+      updateServerStatus(window._serverCaps);
+    });
+}
+
+function updateServerStatus(caps) {
+  var serverDot = document.getElementById('server-status-dot');
+  var serverLbl = document.getElementById('server-status-lbl');
+  if (serverDot) serverDot.style.background = caps.server ? 'var(--grn)' : 'var(--c3)';
+  if (serverLbl) serverLbl.textContent = caps.server ? '起動中' : '未起動';
+}
+
+// ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
 (function init() {
@@ -4943,6 +5122,9 @@ function recoverStorage() {
       else if (act === 'rm') removeMedia(mid);
     });
   }
+
+  // serve.js機能検知
+  detectServerCapabilities();
 
   // PWA Service Worker 登録
   if ('serviceWorker' in navigator) {
